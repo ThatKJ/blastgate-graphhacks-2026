@@ -5,22 +5,22 @@
    ========================================================================== */
 
 :root {
-  /* Surface & Base Hierarchy */
-  --ground: #0a0d14;
-  --surface: #111722;
-  --surface-raised: #162030;
-  --surface-card: #1c2738;
-  --surface-sunken: #070a0f;
-  --surface-hover: #1e2b3e;
+  /* Surface & Base Hierarchy — Deep Obsidian & Precision Graphite */
+  --ground: #080a0f;
+  --surface: #0e131d;
+  --surface-raised: #141c2b;
+  --surface-card: #192336;
+  --surface-sunken: #05070b;
+  --surface-hover: #1e2b42;
 
-  /* Crisp 1px Borders */
-  --rule: #222f42;
-  --rule-subtle: rgba(255, 255, 255, 0.07);
-  --rule-hover: #3b506e;
-  --rule-active: #38bdf8;
+  /* Crisp Engineering Borders */
+  --rule: #1e293b;
+  --rule-subtle: rgba(255, 255, 255, 0.06);
+  --rule-hover: #334155;
+  --rule-active: #8b5cf6;
 
   /* Typography Colors */
-  --ink: #f1f5f9;
+  --ink: #f8fafc;
   --ink-secondary: #cbd5e1;
   --muted: #94a3b8;
   --subtle: #64748b;
@@ -36,9 +36,16 @@
   --clear-bg: rgba(16, 185, 129, 0.12);
   --clear-border: rgba(16, 185, 129, 0.4);
 
-  /* Accents & Focus */
+  /* Accents & Signals */
   --focus: #38bdf8;
-  --focus-bg: rgba(56, 189, 248, 0.12);
+  --focus-bg: rgba(56, 189, 248, 0.10);
+  --cyan: #38bdf8;
+  --cyan-bg: rgba(56, 189, 248, 0.10);
+  --violet: #8b5cf6;
+  --violet-bg: rgba(139, 92, 246, 0.10);
+  --violet-border: rgba(139, 92, 246, 0.35);
+  --violet-glow: rgba(139, 92, 246, 0.20);
+  --violet-hover: #a78bfa;
   --indigo: #818cf8;
   --tone: var(--muted);
 
@@ -53,10 +60,10 @@
   --radius-lg: 12px;
   --radius-xl: 16px;
 
-  /* Shadows */
+  /* Tactical Shadows */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
-  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.6);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.65);
 
   color-scheme: dark;
 }
@@ -72,9 +79,11 @@ html {
 
 body {
   margin: 0;
-  background: var(--ground);
+  background-color: var(--ground);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
   color: var(--ink);
-  font: 400 14.5px/1.6 var(--sans);
+  font: 400 14px/1.6 var(--sans);
   letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -105,10 +114,10 @@ code {
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 1.5rem;
-  padding: 0.85rem 1.75rem;
-  background: rgba(17, 23, 34, 0.88);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  padding: 0.8rem 1.75rem;
+  background: rgba(10, 13, 20, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--rule);
   position: sticky;
   top: 0;
@@ -132,9 +141,9 @@ code {
   display: inline-block;
   width: 14px;
   height: 14px;
-  background: linear-gradient(135deg, #38bdf8, #818cf8);
+  background: linear-gradient(135deg, #38bdf8 0%, #8b5cf6 100%);
   border-radius: 3px;
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.45);
 }
 
 .top h1 {
@@ -324,13 +333,14 @@ code {
 
 /* Flagship PR-900 Highlight */
 #flagship button {
-  background: rgba(56, 189, 248, 0.04);
-  border: 1px solid rgba(56, 189, 248, 0.2);
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.06), rgba(139, 92, 246, 0.04));
+  border: 1px solid rgba(56, 189, 248, 0.3);
 }
 
 #flagship button:hover {
-  background: rgba(56, 189, 248, 0.08);
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(139, 92, 246, 0.08));
   border-color: var(--focus);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.22);
 }
 
 #flagship button .pr {
@@ -338,14 +348,28 @@ code {
 }
 
 #codegraph {
-  border: 1px dashed var(--rule);
-  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--violet-border);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.06), rgba(56, 189, 248, 0.02));
+}
+
+#codegraph .pr {
+  color: var(--violet-hover);
 }
 
 #codegraph:hover {
-  border-style: solid;
-  border-color: var(--indigo);
-  background: rgba(129, 140, 248, 0.06);
+  border-color: var(--violet-hover);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(56, 189, 248, 0.05));
+  box-shadow: 0 0 12px var(--violet-glow);
+}
+
+#codegraph[aria-current="true"] {
+  background: var(--surface-raised);
+  border-color: var(--violet-hover);
+  box-shadow: inset 3px 0 0 var(--violet-hover), 0 0 14px var(--violet-glow);
+}
+
+#codegraph[aria-current="true"] .pr {
+  color: var(--violet-hover);
 }
 
 /* --- Main Workbench -------------------------------------------------------------------------- */
@@ -1156,9 +1180,9 @@ tbody th {
 
 .explanation {
   margin: 0.75rem 0;
-  padding: 0.9rem 1.25rem;
-  border-left: 3px solid var(--indigo);
-  background: var(--surface-raised);
+  padding: 0.95rem 1.35rem;
+  border-left: 3px solid var(--violet);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.06), var(--surface-raised));
   max-width: 80ch;
   border-radius: 0 var(--radius-md) var(--radius-md) 0;
   font-style: italic;
@@ -1209,7 +1233,7 @@ summary:hover {
   bottom: 1rem;
   left: 0.95rem;
   width: 2px;
-  background: var(--rule);
+  background: linear-gradient(180deg, var(--rule) 0%, var(--violet-border) 45%, var(--rule) 100%);
 }
 
 .step {
