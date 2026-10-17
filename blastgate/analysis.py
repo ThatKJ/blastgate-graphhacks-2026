@@ -30,6 +30,7 @@ class Report:
     exposure: dict | None
     decision: Decision
     data_label: str = SYNTHETIC
+    counterfactual: dict | None = None  # set only by simulation; None => verdict derived from the real graph
 
     @property
     def verdict(self):

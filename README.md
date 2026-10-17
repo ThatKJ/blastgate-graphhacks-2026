@@ -135,6 +135,12 @@ explain a `Report` but has no input path into `decide()`.
 - All data is synthetic and hand-modelled. Nothing is ingested from real repos, manifests, traces or incident tools.
 - Betweenness is FalkorDB's **sampled approximation**: reproducible with the pinned seed, but not exact. Even with `samplingSize` ≥ node count, the scores didn't match hand-computed exact values. It's informational only and is never a verdict input.
 - The counterfactual is a **topology simulation only**: *"Counterfactual graph simulation only. The proposed code mitigation remains unverified until contract or integration tests pass."*
+  The simulated report carries this qualification itself, so it survives being serialised or used on its own:
+  every reason is prefixed `[COUNTERFACTUAL - assumed mitigation, unverified]`. A `counterfactual` block records
+  `is_counterfactual: true`, `mitigation_status: "assumed_unverified"`, `verified_by_contract_or_integration_tests: false`,
+  the graph verdict under the assumption, and separately the `production_verdict` and `production_recommendation`.
+  For PR-104 that recommendation is "treat as BLOCK until the mitigation passes contract or integration tests".
+  Normal reports have `counterfactual: null`.
 - Financial exposure is penalty/hour × an assumed outage duration. It isn't a prediction or a measured loss.
 - `breaking` is declared per scenario. There's no schema-diff detection yet.
 - Downstream traversal is capped at 8 hops.
@@ -142,4 +148,12 @@ explain a `Report` but has no input path into `decide()`.
 
 ## AI assistance disclosure
 
-Built with an AI coding assistant (Claude Code). The team must review and be able to explain the graph model, queries and decisions, per the hackathon rules.
+This project was built with AI coding assistance, disclosed per the GraphHacks rules:
+
+- **Claude Code** (Anthropic) wrote and ran the code and tests under human direction.
+- **Everything Claude Code (ECC)** workflows: `search-first` to check the FalkorDB client, Cypher, `GRAPH.COPY`/`GRAPH.DELETE`
+  and `algo.betweenness` against the official docs and the live server before coding, and `change-impact` for an independent
+  correctness audit with adversarial probes (it found and fixed a silent-CLEAR seeding bug and a cross-producer contract leak).
+- **Ponytail** for minimal-code discipline (no unrequested abstractions or dependencies).
+
+The team must review and be able to explain the graph model, queries and decisions.

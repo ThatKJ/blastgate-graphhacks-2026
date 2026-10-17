@@ -3,6 +3,7 @@
 Skipped (with the reason shown) if FalkorDB is unreachable. Skipped != passed.
 Each run uses its own uniquely named graph and deletes it afterwards.
 """
+import json
 import uuid
 
 import pytest
@@ -120,6 +121,15 @@ def test_counterfactual_clear_on_copy_original_isolated(db, graph):
     assert sim.original_unchanged and fingerprint(graph) == before
     assert analyze(graph, SCENARIOS["PR-104"]).verdict is Verdict.BLOCK
     assert sim.label.startswith("Counterfactual graph simulation only.")
+    # The copied-graph report carries its own qualification, also after JSON round-trip.
+    after = json.loads(json.dumps(sim.after.as_dict(), default=str))
+    assert after["counterfactual"]["is_counterfactual"] is True
+    assert after["counterfactual"]["verified_by_contract_or_integration_tests"] is False
+    assert after["counterfactual"]["production_verdict"] == "BLOCK"
+    assert all(r.startswith("[COUNTERFACTUAL") for r in after["reasons"])
+    # Normal reports are untouched.
+    normal = analyze(graph, SCENARIOS["PR-104"])
+    assert normal.counterfactual is None and not normal.decision.reasons[0].startswith("[COUNTERFACTUAL")
 
 
 def test_counterfactual_bad_target_cleans_up(db, graph):

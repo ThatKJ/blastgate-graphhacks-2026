@@ -81,6 +81,7 @@ def main(argv=None) -> int:
               f"{[c['service'] for c in sim.before.vulnerable_consumers]})")
         print(f"  after:  {sim.after.verdict.value} (vulnerable: "
               f"{[c['service'] for c in sim.after.vulnerable_consumers]})")
+        print(f"  production recommendation: {sim.after.counterfactual['production_recommendation']}")
         print(f"  temp graph {sim.temp_graph} deleted: {sim.temp_graph_deleted} | "
               f"original graph unchanged: {sim.original_unchanged}")
     return 0

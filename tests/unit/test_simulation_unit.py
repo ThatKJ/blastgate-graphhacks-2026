@@ -1,10 +1,13 @@
 """Cleanup guarantees of the simulation, with mocks. Real copy/isolation is tested in integration."""
+import json
 from unittest import mock
 
 import pytest
 
 from blastgate import simulation
+from blastgate.analysis import Report
 from blastgate.graph import SCENARIOS
+from blastgate.verdict import Decision, Verdict
 
 
 class FakeDB:
@@ -37,10 +40,33 @@ class FakeDB:
         return g
 
 
+def fake_report(graph, sc):
+    """Real Report objects: source graph -> BLOCK, copied graph -> CLEAR."""
+    verdict = Verdict.BLOCK if graph.name == "src" else Verdict.CLEAR
+    return Report(sc, True, True, "complete", "n", [], [], [], [], None, None, None, None,
+                  Decision(verdict, (f"graph reason {verdict.value}",)))
+
+
 @pytest.fixture(autouse=True)
 def stub_analysis(monkeypatch):
     monkeypatch.setattr(simulation, "fingerprint", lambda g: ["same"])
-    monkeypatch.setattr(simulation, "analyze", lambda g, sc: mock.Mock(name=f"report:{g.name}"))
+    monkeypatch.setattr(simulation, "analyze", fake_report)
+
+
+def test_counterfactual_marker_survives_standalone_report_and_json():
+    res = simulation.simulate_consumer_fallback(FakeDB(), "src", SCENARIOS["PR-104"], "checkout-api")
+    for payload in (res.after.as_dict(), json.loads(json.dumps(res.as_dict(), default=str))["after"]):
+        cf = payload["counterfactual"]
+        assert cf["is_counterfactual"] is True
+        assert cf["mitigation_status"] == "assumed_unverified"
+        assert cf["verified_by_contract_or_integration_tests"] is False
+        assert cf["graph_verdict_under_assumption"] == "CLEAR" and payload["verdict"] == "CLEAR"
+        assert cf["production_verdict"] == "BLOCK" and "BLOCK" in cf["production_recommendation"]
+        assert cf["label"] == simulation.SIMULATION_LABEL and "checkout-api" in cf["assumption"]
+        assert all(r.startswith(simulation.REASON_PREFIX) for r in payload["reasons"])
+        assert "graph reason CLEAR" in payload["reasons"][-1]   # original graph-derived reason kept
+    assert res.before.counterfactual is None
+    assert res.before.decision.reasons == ("graph reason BLOCK",)
 
 
 def test_temp_graph_deleted_after_success():
