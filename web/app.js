@@ -92,6 +92,9 @@ async function loadScenarios() {
   list.innerHTML = r.data.filter((s) => !s.code_change).map(item).join("");
   document.querySelectorAll("[data-pr]").forEach((b) => { b.onclick = () => select(b.dataset.pr); });
   renderStart();
+  const hash = (window.location.hash || "").slice(1);
+  if (hash === "codegraph") openCodegraph();
+  else if (hash && r.data.some((s) => s.pr_id === hash)) select(hash);
 }
 
 function select(prId) {
@@ -100,6 +103,7 @@ function select(prId) {
   state.token += 1;                     // responses for a previous selection are ignored
   Object.assign(state, { current: s, analysis: null, agent: null, selected: null, simulation: null, errors: {} });
   delete $("result").dataset.view;
+  if (window.location.hash !== `#${prId}`) history.replaceState(null, "", `#${prId}`);
   document.querySelectorAll("[data-pr]").forEach((b) => b.setAttribute("aria-current", String(b.dataset.pr === prId)));
   $("codegraph").setAttribute("aria-current", "false");
   $("change").innerHTML = `
@@ -333,6 +337,7 @@ async function openCodegraph() {
   Object.assign(state, { current: null, analysis: null, agent: null, selected: null });
   document.querySelectorAll("[data-pr]").forEach((b) => b.setAttribute("aria-current", "false"));
   $("codegraph").setAttribute("aria-current", "true");
+  if (window.location.hash !== "#codegraph") history.replaceState(null, "", "#codegraph");
   $("result").dataset.view = "codegraph";
   $("current").innerHTML = "";
   $("change").innerHTML = `
@@ -371,3 +376,9 @@ function showError(targetId, err, retry, label, prefix = "") {
 
 loadHealth();
 loadScenarios();
+
+window.addEventListener("hashchange", () => {
+  const hash = (window.location.hash || "").slice(1);
+  if (hash === "codegraph") openCodegraph();
+  else if (hash && state.scenarios.some((s) => s.pr_id === hash)) select(hash);
+});
