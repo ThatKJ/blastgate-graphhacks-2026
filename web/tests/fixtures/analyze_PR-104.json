@@ -1,0 +1,212 @@
+{
+  "body": {
+    "affected_services": [
+      {
+        "depth": 1,
+        "path": [
+          "pricing-engine",
+          "checkout-api"
+        ],
+        "service": "checkout-api",
+        "tier": "critical"
+      },
+      {
+        "depth": 2,
+        "path": [
+          "pricing-engine",
+          "checkout-api",
+          "order-orchestrator"
+        ],
+        "service": "order-orchestrator",
+        "tier": "critical"
+      },
+      {
+        "depth": 2,
+        "path": [
+          "pricing-engine",
+          "checkout-api",
+          "storefront-bff"
+        ],
+        "service": "storefront-bff",
+        "tier": "standard"
+      },
+      {
+        "depth": 3,
+        "path": [
+          "pricing-engine",
+          "checkout-api",
+          "order-orchestrator",
+          "invoice-worker"
+        ],
+        "service": "invoice-worker",
+        "tier": "standard"
+      },
+      {
+        "depth": 3,
+        "path": [
+          "pricing-engine",
+          "checkout-api",
+          "order-orchestrator",
+          "partner-gateway"
+        ],
+        "service": "partner-gateway",
+        "tier": "standard"
+      }
+    ],
+    "centrality": {
+      "checkout-api": 2.0,
+      "invoice-worker": 0.0,
+      "order-orchestrator": 4.0,
+      "partner-gateway": 0.0,
+      "storefront-bff": 0.0
+    },
+    "consumers": [
+      {
+        "evidence_source": "synthetic: checkout-api consumer contract (pact) manifest",
+        "fallback_enabled": false,
+        "service": "checkout-api",
+        "tier": "critical"
+      }
+    ],
+    "contract_found": true,
+    "coverage_note": "All internal consumers indexed from synthetic consumer-contract manifests.",
+    "data_label": "SYNTHETIC - fabricated demo data, not real customer or production data",
+    "exposure": {
+      "assumed_outage_hours": 2.0,
+      "assumed_total_usd": 43000.0,
+      "label": "ASSUMED exposure = sum(synthetic SLA penalty/hour) x scenario assumed outage hours. Not a measured or predicted loss.",
+      "penalty_per_hour_usd": 21500.0
+    },
+    "field_found": true,
+    "incidents": [
+      {
+        "incident_id": "INC-2041",
+        "resolved_by": [
+          "eng-alpha"
+        ],
+        "severity": "SEV-2",
+        "summary": "discount_tier enum rename broke checkout-api price parsing",
+        "synthetic": true
+      }
+    ],
+    "inventory": {
+      "affected_services": {
+        "items": [
+          "checkout-api (depth 1)",
+          "order-orchestrator (depth 2)",
+          "storefront-bff (depth 2)",
+          "invoice-worker (depth 3)",
+          "partner-gateway (depth 3)"
+        ],
+        "source": "deterministic analysis",
+        "status": "found"
+      },
+      "consumers": {
+        "items": [
+          "checkout-api"
+        ],
+        "source": "deterministic analysis",
+        "status": "found"
+      },
+      "critical_services": {
+        "items": [
+          "checkout-api",
+          "order-orchestrator"
+        ],
+        "source": "deterministic analysis",
+        "status": "found"
+      },
+      "incidents": {
+        "items": [
+          "INC-2041"
+        ],
+        "source": "deterministic analysis",
+        "status": "found"
+      },
+      "reviewers": {
+        "items": [
+          "eng-alpha",
+          "eng-bravo"
+        ],
+        "source": "deterministic analysis",
+        "status": "found"
+      },
+      "slas": {
+        "items": [
+          "SLA-CHECKOUT-99.95 (checkout-api)",
+          "SLA-INVOICE-24H (invoice-worker)",
+          "SLA-ORDERS-99.9 (order-orchestrator)"
+        ],
+        "source": "deterministic analysis",
+        "status": "found"
+      },
+      "vulnerable_consumers": {
+        "items": [
+          "checkout-api"
+        ],
+        "source": "deterministic analysis",
+        "status": "found"
+      }
+    },
+    "mapping_status": "complete",
+    "pr_id": "PR-104",
+    "reasons": [
+      "Breaking change reaches consumer(s) without fallback: checkout-api.",
+      "Affected critical services: checkout-api, order-orchestrator; SLAs: SLA-CHECKOUT-99.95, SLA-INVOICE-24H, SLA-ORDERS-99.9."
+    ],
+    "reviewers": [
+      {
+        "authored_services": [
+          "checkout-api"
+        ],
+        "display_name": "Synthetic Engineer Alpha",
+        "handle": "eng-alpha",
+        "resolved_incidents": [
+          "INC-2041"
+        ]
+      },
+      {
+        "authored_services": [
+          "order-orchestrator"
+        ],
+        "display_name": "Synthetic Engineer Bravo",
+        "handle": "eng-bravo",
+        "resolved_incidents": []
+      }
+    ],
+    "slas": [
+      {
+        "name": "Checkout availability 99.95%",
+        "penalty_per_hour_usd": 12000.0,
+        "service": "checkout-api",
+        "sla_id": "SLA-CHECKOUT-99.95",
+        "synthetic": true
+      },
+      {
+        "name": "Invoice issued within 24h",
+        "penalty_per_hour_usd": 1500.0,
+        "service": "invoice-worker",
+        "sla_id": "SLA-INVOICE-24H",
+        "synthetic": true
+      },
+      {
+        "name": "Order fulfilment 99.9%",
+        "penalty_per_hour_usd": 8000.0,
+        "service": "order-orchestrator",
+        "sla_id": "SLA-ORDERS-99.9",
+        "synthetic": true
+      }
+    ],
+    "summary": "BLOCK: Breaking change reaches consumer(s) without fallback: checkout-api. Evidence - vulnerable consumers: checkout-api; affected critical services: checkout-api, order-orchestrator; SLAs at risk: SLA-CHECKOUT-99.95 (checkout-api), SLA-INVOICE-24H (invoice-worker), SLA-ORDERS-99.9 (order-orchestrator); incidents on this contract: INC-2041.",
+    "verdict": "BLOCK",
+    "vulnerable_consumers": [
+      {
+        "evidence_source": "synthetic: checkout-api consumer contract (pact) manifest",
+        "fallback_enabled": false,
+        "service": "checkout-api",
+        "tier": "critical"
+      }
+    ]
+  },
+  "status": 200
+}

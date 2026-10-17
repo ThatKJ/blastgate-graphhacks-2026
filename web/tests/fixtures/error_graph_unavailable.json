@@ -1,0 +1,7 @@
+{
+  "body": {
+    "error": "graph_unavailable",
+    "message": "FalkorDB is unreachable."
+  },
+  "status": 503
+}

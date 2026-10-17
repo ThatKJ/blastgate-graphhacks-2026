@@ -121,17 +121,24 @@ class Scenario:
     breaking: bool
     local_tests: str
     assumed_outage_hours: float
+    new_type: str = "unspecified"  # declared by the PR; the old type is read from the graph
+    source: str = "declared by the PR (synthetic scenario)"  # or derived by the code graph from a git diff
 
 
 SCENARIOS = {
     s.pr_id: s for s in [
         Scenario("PR-104", "Change discount_tier from string to object", "pricing-engine", "pricing-api-v2",
-                 "discount_tier", "type change: string -> object", True, "passing (represented, synthetic)", 2.0),
+                 "discount_tier", "type change: string -> object", True, "passing (represented, synthetic)", 2.0,
+                 "object"),
         Scenario("PR-108", "Change partner webhook payload_signature encoding", "partner-gateway",
                  "partner-webhook-v1", "payload_signature", "encoding change: hex -> base64", True,
-                 "passing (represented, synthetic)", 2.0),
+                 "passing (represented, synthetic)", 2.0, "string(base64)"),
         Scenario("PR-112", "Change optional catalog promo_badge format", "catalog-service", "catalog-api-v1",
-                 "promo_badge", "format change on optional field", True, "passing (represented, synthetic)", 2.0),
+                 "promo_badge", "format change on optional field", True, "passing (represented, synthetic)", 2.0,
+                 "string(badge-v2), optional"),
+        Scenario("PR-114", "Change required catalog sku format", "catalog-service", "catalog-api-v1",
+                 "sku", "format change: string -> string(urn)", True, "passing (represented, synthetic)", 2.0,
+                 "string(urn)"),
     ]
 }
 

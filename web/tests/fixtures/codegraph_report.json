@@ -1,0 +1,397 @@
+{
+  "body": {
+    "action": "review_report",
+    "base": "ed5503176ca76687cb7bbb50aa160dd312ec5d94",
+    "changed_functions_impact": {
+      "dependents": [],
+      "routes": [],
+      "tests": []
+    },
+    "changed_symbols": [
+      {
+        "file": "contracts/pricing.py",
+        "kind": "Class",
+        "sides": [
+          "base",
+          "head"
+        ],
+        "symbol": "contracts/pricing.py::PriceQuote"
+      }
+    ],
+    "code_graphs_deleted": true,
+    "contract_changes": [
+      {
+        "breaking": true,
+        "code_impact": {
+          "dependents": [
+            {
+              "confidence": "type-level",
+              "file": "checkout_api/pricing_client.py",
+              "function": "checkout_api/pricing_client.py::checkout_total",
+              "mapping": "mapped",
+              "path": [
+                "checkout_api/pricing_client.py::checkout_total"
+              ],
+              "service": "checkout-api",
+              "via": "ACCEPTS"
+            },
+            {
+              "confidence": "type-level",
+              "file": "checkout_api/pricing_client.py",
+              "function": "checkout_api/pricing_client.py::parse_discount",
+              "mapping": "mapped",
+              "path": [
+                "checkout_api/pricing_client.py::parse_discount"
+              ],
+              "service": "checkout-api",
+              "via": "ACCEPTS"
+            },
+            {
+              "confidence": "type-level",
+              "file": "checkout_api/routes.py",
+              "function": "checkout_api/routes.py::checkout",
+              "mapping": "mapped",
+              "path": [
+                "checkout_api/routes.py::checkout"
+              ],
+              "service": "checkout-api",
+              "via": "ACCEPTS"
+            },
+            {
+              "confidence": "type-level",
+              "file": "pricing_engine/routes.py",
+              "function": "pricing_engine/routes.py::get_quote",
+              "mapping": "mapped",
+              "path": [
+                "pricing_engine/routes.py::get_quote"
+              ],
+              "service": "pricing-engine",
+              "via": "RETURNS"
+            },
+            {
+              "confidence": "type-level",
+              "file": "pricing_engine/service.py",
+              "function": "pricing_engine/service.py::build_quote",
+              "mapping": "mapped",
+              "path": [
+                "pricing_engine/service.py::build_quote"
+              ],
+              "service": "pricing-engine",
+              "via": "RETURNS"
+            },
+            {
+              "confidence": "type-level",
+              "file": "reporting/revenue.py",
+              "function": "reporting/revenue.py::tier_revenue",
+              "mapping": "unmapped",
+              "path": [
+                "reporting/revenue.py::tier_revenue"
+              ],
+              "service": null,
+              "via": "ACCEPTS"
+            }
+          ],
+          "routes": [
+            {
+              "file": "checkout_api/routes.py",
+              "handler": "checkout_api/routes.py::checkout",
+              "mapping": "mapped",
+              "method": "POST",
+              "path": "/checkout",
+              "service": "checkout-api"
+            },
+            {
+              "file": "pricing_engine/routes.py",
+              "handler": "pricing_engine/routes.py::get_quote",
+              "mapping": "mapped",
+              "method": "GET",
+              "path": "/v2/quote",
+              "service": "pricing-engine"
+            }
+          ],
+          "tests": [
+            {
+              "covers": "checkout_api/pricing_client.py::parse_discount",
+              "file": "checkout_api/tests/test_pricing_client.py",
+              "test": "checkout_api/tests/test_pricing_client.py::test_parse_discount_gold",
+              "via": "TESTS_FUNCTION depth 1"
+            }
+          ]
+        },
+        "counterfactual": {
+          "assumption": "ASSUMPTION: checkout-api gains a compatible fallback for pricing-api-v2.discount_tier (type_changed: str -> dict).",
+          "changes": {
+            "consumer": "checkout-api",
+            "contract_id": "pricing-api-v2",
+            "fallback_after": true,
+            "fallback_before": false,
+            "field": "discount_tier",
+            "relationship": "(checkout-api)-[:CONSUMES_FIELD]->(pricing-api-v2.discount_tier)",
+            "remaining_affected_services": [],
+            "remaining_slas": [],
+            "remaining_vulnerable_consumers": [],
+            "removed_affected_services": [
+              "checkout-api",
+              "order-orchestrator",
+              "storefront-bff",
+              "invoice-worker",
+              "partner-gateway"
+            ],
+            "removed_slas": [
+              "SLA-CHECKOUT-99.95",
+              "SLA-INVOICE-24H",
+              "SLA-ORDERS-99.9"
+            ],
+            "removed_vulnerable_consumers": [
+              "checkout-api"
+            ]
+          },
+          "graph_verdict_under_assumption": "CLEAR",
+          "is_counterfactual": true,
+          "label": "Counterfactual graph simulation only. The proposed code mitigation remains unverified until contract or integration tests pass.",
+          "mitigation_status": "assumed_unverified",
+          "production_recommendation": "Treat this change as BLOCK until the mitigation is implemented and passes contract or integration tests.",
+          "production_verdict": "BLOCK",
+          "status": "ok",
+          "verified_by_contract_or_integration_tests": false
+        },
+        "cross_check": {
+          "code_only": [],
+          "corroborated": [
+            "checkout-api"
+          ],
+          "service_graph_only": []
+        },
+        "field": "discount_tier",
+        "kind": "type_changed",
+        "mapping": "validated",
+        "new_type": "dict",
+        "old_type": "str",
+        "reasons": [
+          "Breaking change reaches consumer(s) without fallback: checkout-api.",
+          "Affected critical services: checkout-api, order-orchestrator; SLAs: SLA-CHECKOUT-99.95, SLA-INVOICE-24H, SLA-ORDERS-99.9."
+        ],
+        "recommended_tests": [
+          "run checkout_api/tests/test_pricing_client.py::test_parse_discount_gold (covers checkout_api/pricing_client.py::parse_discount)",
+          "add/run a contract test: checkout-api consuming pricing-api-v2.discount_tier as dict"
+        ],
+        "scenario": {
+          "assumed_outage_hours": 2.0,
+          "breaking": true,
+          "change": "type_changed: str -> dict",
+          "contract_id": "pricing-api-v2",
+          "field": "discount_tier",
+          "local_tests": "not run by BlastGate",
+          "new_type": "dict",
+          "pr_id": "DIFF contracts/pricing.py::PriceQuote.discount_tier",
+          "producer": "pricing-engine",
+          "title": "type_changed contracts/pricing.py::PriceQuote.discount_tier"
+        },
+        "service_graph": {
+          "affected_services": [
+            {
+              "depth": 1,
+              "path": [
+                "pricing-engine",
+                "checkout-api"
+              ],
+              "service": "checkout-api",
+              "tier": "critical"
+            },
+            {
+              "depth": 2,
+              "path": [
+                "pricing-engine",
+                "checkout-api",
+                "order-orchestrator"
+              ],
+              "service": "order-orchestrator",
+              "tier": "critical"
+            },
+            {
+              "depth": 2,
+              "path": [
+                "pricing-engine",
+                "checkout-api",
+                "storefront-bff"
+              ],
+              "service": "storefront-bff",
+              "tier": "standard"
+            },
+            {
+              "depth": 3,
+              "path": [
+                "pricing-engine",
+                "checkout-api",
+                "order-orchestrator",
+                "invoice-worker"
+              ],
+              "service": "invoice-worker",
+              "tier": "standard"
+            },
+            {
+              "depth": 3,
+              "path": [
+                "pricing-engine",
+                "checkout-api",
+                "order-orchestrator",
+                "partner-gateway"
+              ],
+              "service": "partner-gateway",
+              "tier": "standard"
+            }
+          ],
+          "centrality": {
+            "checkout-api": 2.0,
+            "invoice-worker": 0.0,
+            "order-orchestrator": 4.0,
+            "partner-gateway": 0.0,
+            "storefront-bff": 0.0
+          },
+          "consumers": [
+            {
+              "evidence_source": "synthetic: checkout-api consumer contract (pact) manifest",
+              "fallback_enabled": false,
+              "service": "checkout-api",
+              "tier": "critical"
+            }
+          ],
+          "coverage_note": "All internal consumers indexed from synthetic consumer-contract manifests.",
+          "exposure": {
+            "assumed_outage_hours": 2.0,
+            "assumed_total_usd": 43000.0,
+            "label": "ASSUMED exposure = sum(synthetic SLA penalty/hour) x scenario assumed outage hours. Not a measured or predicted loss.",
+            "penalty_per_hour_usd": 21500
+          },
+          "incidents": [
+            {
+              "incident_id": "INC-2041",
+              "resolved_by": [
+                "eng-alpha"
+              ],
+              "severity": "SEV-2",
+              "summary": "discount_tier enum rename broke checkout-api price parsing",
+              "synthetic": true
+            }
+          ],
+          "mapping_status": "complete",
+          "reviewers": [
+            {
+              "authored_services": [
+                "checkout-api"
+              ],
+              "display_name": "Synthetic Engineer Alpha",
+              "handle": "eng-alpha",
+              "resolved_incidents": [
+                "INC-2041"
+              ]
+            },
+            {
+              "authored_services": [
+                "order-orchestrator"
+              ],
+              "display_name": "Synthetic Engineer Bravo",
+              "handle": "eng-bravo",
+              "resolved_incidents": []
+            }
+          ],
+          "slas": [
+            {
+              "name": "Checkout availability 99.95%",
+              "penalty_per_hour_usd": 12000,
+              "service": "checkout-api",
+              "sla_id": "SLA-CHECKOUT-99.95",
+              "synthetic": true
+            },
+            {
+              "name": "Invoice issued within 24h",
+              "penalty_per_hour_usd": 1500,
+              "service": "invoice-worker",
+              "sla_id": "SLA-INVOICE-24H",
+              "synthetic": true
+            },
+            {
+              "name": "Order fulfilment 99.9%",
+              "penalty_per_hour_usd": 8000,
+              "service": "order-orchestrator",
+              "sla_id": "SLA-ORDERS-99.9",
+              "synthetic": true
+            }
+          ]
+        },
+        "symbol": "contracts/pricing.py::PriceQuote",
+        "uncertainties": [
+          "reporting/revenue.py::tier_revenue has a code dependency on contracts/pricing.py::PriceQuote but its service mapping is unmapped."
+        ],
+        "verdict": "BLOCK"
+      }
+    ],
+    "data_label": "SYNTHETIC - fabricated demo data, not real customer or production data",
+    "diff": "diff --git a/contracts/pricing.py b/contracts/pricing.py\nindex 8d12330..9d2d70f 100644\n--- a/contracts/pricing.py\n+++ b/contracts/pricing.py\n@@ -9 +9 @@ class PriceQuote:\n-    discount_tier: str\n+    discount_tier: dict\n",
+    "engine": "Gristle code graph + BlastGate service graph; deterministic, no LLM",
+    "general_uncertainties": [],
+    "head": "working tree",
+    "investigation_trace": [
+      {
+        "graph": "service",
+        "query": "services_exist",
+        "rows": 3
+      },
+      {
+        "graph": "base",
+        "query": "symbols_in_file",
+        "rows": 1
+      },
+      {
+        "graph": "head",
+        "query": "symbols_in_file",
+        "rows": 1
+      },
+      {
+        "graph": "base",
+        "query": "type_fields",
+        "rows": 3
+      },
+      {
+        "graph": "head",
+        "query": "type_fields",
+        "rows": 3
+      },
+      {
+        "graph": "head",
+        "query": "type_users",
+        "rows": 6
+      },
+      {
+        "graph": "head",
+        "query": "transitive_callers",
+        "rows": 1
+      },
+      {
+        "graph": "head",
+        "query": "routes",
+        "rows": 2
+      },
+      {
+        "graph": "head",
+        "query": "tests",
+        "rows": 1
+      },
+      {
+        "graph": "service",
+        "query": "analysis.analyze: coverage, consumers, downstream, slas, centrality, incidents, reviewers",
+        "rows": 1
+      }
+    ],
+    "known_gaps": [
+      "Gristle does not index attribute reads: an ACCEPTS/RETURNS link proves a function handles the contract type, not that it reads the changed field.",
+      "HTTP/queue consumers in other repositories are invisible to the code graph; the service graph is the only source for them."
+    ],
+    "reasons": [
+      "contracts/pricing.py::PriceQuote.discount_tier: Breaking change reaches consumer(s) without fallback: checkout-api.",
+      "contracts/pricing.py::PriceQuote.discount_tier: Affected critical services: checkout-api, order-orchestrator; SLAs: SLA-CHECKOUT-99.95, SLA-INVOICE-24H, SLA-ORDERS-99.9."
+    ],
+    "verdict": "BLOCK"
+  },
+  "status": 200
+}

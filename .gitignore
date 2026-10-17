@@ -9,3 +9,6 @@ htmlcov/
 *.log
 blastgate_report*.json
 .DS_Store
+.playwright-mcp/
+.gristle-venv/
+codegraph_demo_out/

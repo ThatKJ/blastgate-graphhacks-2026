@@ -80,5 +80,12 @@ RETURN count(r)
 """
 
 
+# Validates caller-supplied service IDs against the graph (never trust an ID just because it is well-formed).
+SERVICES_EXIST = """
+MATCH (s:Service) WHERE s.name IN $services
+RETURN s.name
+"""
+
+
 def rows(graph, query: str, params: dict) -> list:
     return graph.ro_query(query, params).result_set

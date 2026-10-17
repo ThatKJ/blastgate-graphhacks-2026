@@ -1,0 +1,187 @@
+{
+  "body": {
+    "after": {
+      "affected_services": [],
+      "centrality": null,
+      "consumers": [
+        {
+          "evidence_source": "counterfactual-assumption: ASSUMPTION: checkout-api gains a compatible fallback for pricing-api-v2.discount_tier (type change: string -> object).",
+          "fallback_enabled": true,
+          "service": "checkout-api",
+          "tier": "critical"
+        }
+      ],
+      "contract_found": true,
+      "coverage_note": "All internal consumers indexed from synthetic consumer-contract manifests.",
+      "exposure": null,
+      "field_found": true,
+      "mapping_status": "complete",
+      "reasons": [
+        "[COUNTERFACTUAL - assumed mitigation, unverified] Counterfactual graph simulation only. The proposed code mitigation remains unverified until contract or integration tests pass. ASSUMPTION: checkout-api gains a compatible fallback for pricing-api-v2.discount_tier (type change: string -> object).",
+        "[COUNTERFACTUAL - assumed mitigation, unverified] Coverage complete; all 1 indexed consumer(s) have an evidenced fallback (under modelled scenario assumptions)."
+      ],
+      "slas": [],
+      "verdict": "CLEAR",
+      "vulnerable_consumers": []
+    },
+    "after_reasons": [
+      "[COUNTERFACTUAL - assumed mitigation, unverified] Counterfactual graph simulation only. The proposed code mitigation remains unverified until contract or integration tests pass. ASSUMPTION: checkout-api gains a compatible fallback for pricing-api-v2.discount_tier (type change: string -> object).",
+      "[COUNTERFACTUAL - assumed mitigation, unverified] Coverage complete; all 1 indexed consumer(s) have an evidenced fallback (under modelled scenario assumptions)."
+    ],
+    "before": {
+      "affected_services": [
+        {
+          "depth": 1,
+          "path": [
+            "pricing-engine",
+            "checkout-api"
+          ],
+          "service": "checkout-api",
+          "tier": "critical"
+        },
+        {
+          "depth": 2,
+          "path": [
+            "pricing-engine",
+            "checkout-api",
+            "order-orchestrator"
+          ],
+          "service": "order-orchestrator",
+          "tier": "critical"
+        },
+        {
+          "depth": 2,
+          "path": [
+            "pricing-engine",
+            "checkout-api",
+            "storefront-bff"
+          ],
+          "service": "storefront-bff",
+          "tier": "standard"
+        },
+        {
+          "depth": 3,
+          "path": [
+            "pricing-engine",
+            "checkout-api",
+            "order-orchestrator",
+            "invoice-worker"
+          ],
+          "service": "invoice-worker",
+          "tier": "standard"
+        },
+        {
+          "depth": 3,
+          "path": [
+            "pricing-engine",
+            "checkout-api",
+            "order-orchestrator",
+            "partner-gateway"
+          ],
+          "service": "partner-gateway",
+          "tier": "standard"
+        }
+      ],
+      "centrality": {
+        "checkout-api": 2.0,
+        "invoice-worker": 0.0,
+        "order-orchestrator": 4.0,
+        "partner-gateway": 0.0,
+        "storefront-bff": 0.0
+      },
+      "consumers": [
+        {
+          "evidence_source": "synthetic: checkout-api consumer contract (pact) manifest",
+          "fallback_enabled": false,
+          "service": "checkout-api",
+          "tier": "critical"
+        }
+      ],
+      "contract_found": true,
+      "coverage_note": "All internal consumers indexed from synthetic consumer-contract manifests.",
+      "exposure": {
+        "assumed_outage_hours": 2.0,
+        "assumed_total_usd": 43000.0,
+        "label": "ASSUMED exposure = sum(synthetic SLA penalty/hour) x scenario assumed outage hours. Not a measured or predicted loss.",
+        "penalty_per_hour_usd": 21500.0
+      },
+      "field_found": true,
+      "mapping_status": "complete",
+      "reasons": [
+        "Breaking change reaches consumer(s) without fallback: checkout-api.",
+        "Affected critical services: checkout-api, order-orchestrator; SLAs: SLA-CHECKOUT-99.95, SLA-INVOICE-24H, SLA-ORDERS-99.9."
+      ],
+      "slas": [
+        {
+          "name": "Checkout availability 99.95%",
+          "penalty_per_hour_usd": 12000.0,
+          "service": "checkout-api",
+          "sla_id": "SLA-CHECKOUT-99.95",
+          "synthetic": true
+        },
+        {
+          "name": "Invoice issued within 24h",
+          "penalty_per_hour_usd": 1500.0,
+          "service": "invoice-worker",
+          "sla_id": "SLA-INVOICE-24H",
+          "synthetic": true
+        },
+        {
+          "name": "Order fulfilment 99.9%",
+          "penalty_per_hour_usd": 8000.0,
+          "service": "order-orchestrator",
+          "sla_id": "SLA-ORDERS-99.9",
+          "synthetic": true
+        }
+      ],
+      "verdict": "BLOCK",
+      "vulnerable_consumers": [
+        "checkout-api"
+      ]
+    },
+    "changes": {
+      "consumer": "checkout-api",
+      "contract_id": "pricing-api-v2",
+      "fallback_after": true,
+      "fallback_before": false,
+      "field": "discount_tier",
+      "relationship": "(checkout-api)-[:CONSUMES_FIELD]->(pricing-api-v2.discount_tier)",
+      "remaining_affected_services": [],
+      "remaining_slas": [],
+      "remaining_vulnerable_consumers": [],
+      "removed_affected_services": [
+        "checkout-api",
+        "order-orchestrator",
+        "storefront-bff",
+        "invoice-worker",
+        "partner-gateway"
+      ],
+      "removed_slas": [
+        "SLA-CHECKOUT-99.95",
+        "SLA-INVOICE-24H",
+        "SLA-ORDERS-99.9"
+      ],
+      "removed_vulnerable_consumers": [
+        "checkout-api"
+      ]
+    },
+    "code_level_correctness": "UNVERIFIED - requires contract or integration tests",
+    "counterfactual": {
+      "assumption": "ASSUMPTION: checkout-api gains a compatible fallback for pricing-api-v2.discount_tier (type change: string -> object).",
+      "graph_verdict_under_assumption": "CLEAR",
+      "is_counterfactual": true,
+      "label": "Counterfactual graph simulation only. The proposed code mitigation remains unverified until contract or integration tests pass.",
+      "mitigation_status": "assumed_unverified",
+      "production_recommendation": "Treat this change as BLOCK until the mitigation is implemented and passes contract or integration tests.",
+      "production_verdict": "BLOCK",
+      "verified_by_contract_or_integration_tests": false
+    },
+    "label": "Counterfactual graph simulation only. The proposed code mitigation remains unverified until contract or integration tests pass.",
+    "modelled_mutation": "checkout-api CONSUMES_FIELD.fallback_enabled := true, on a temporary graph copy only",
+    "original_unchanged": true,
+    "pr_id": "PR-104",
+    "temp_graph_deleted": true,
+    "user_assumption": "checkout-api adds a backward-compatible fallback for discount_tier"
+  },
+  "status": 200
+}

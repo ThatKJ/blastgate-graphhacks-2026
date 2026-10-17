@@ -1,0 +1,7 @@
+{
+  "body": {
+    "error": "unknown_scenario",
+    "message": "Unknown PR PR-999; see GET /api/scenarios"
+  },
+  "status": 404
+}

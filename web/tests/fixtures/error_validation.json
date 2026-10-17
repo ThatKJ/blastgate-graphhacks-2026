@@ -1,0 +1,19 @@
+{
+  "body": {
+    "detail": [
+      {
+        "ctx": {
+          "min_length": 10
+        },
+        "input": "short",
+        "loc": [
+          "body",
+          "assumption"
+        ],
+        "msg": "String should have at least 10 characters",
+        "type": "string_too_short"
+      }
+    ]
+  },
+  "status": 422
+}

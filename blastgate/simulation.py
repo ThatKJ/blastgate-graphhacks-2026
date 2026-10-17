@@ -32,6 +32,53 @@ def mark_counterfactual(after: Report, before: Report, assumption: str) -> Repor
     )
 
 
+def impact_snapshot(r: Report) -> dict:
+    """Structured topology and findings for one graph state (before or after)."""
+    return {
+        "verdict": r.verdict.value,
+        "reasons": list(r.decision.reasons),
+        "contract_found": r.contract_found,
+        "field_found": r.field_found,
+        "mapping_status": r.mapping_status,
+        "coverage_note": r.coverage_note,
+        "consumers": list(r.consumers),
+        "vulnerable_consumers": [c["service"] for c in r.vulnerable_consumers],
+        "affected_services": list(r.affected_services),
+        "slas": list(r.slas),
+        "exposure": r.exposure,
+        "centrality": r.centrality,
+    }
+
+
+def diff_reports(sc: Scenario, consumer: str, before: Report, after: Report) -> dict:
+    """Explicit comparison between the real graph report and the copied-graph simulation report."""
+    before_c = next((c for c in before.consumers if c["service"] == consumer), {})
+    after_c = next((c for c in after.consumers if c["service"] == consumer), {})
+    before_vuln = [c["service"] for c in before.vulnerable_consumers]
+    after_vuln = [c["service"] for c in after.vulnerable_consumers]
+    after_vuln_set = set(after_vuln)
+    before_aff = [a["service"] for a in before.affected_services]
+    after_aff = [a["service"] for a in after.affected_services]
+    after_aff_set = set(after_aff)
+    before_slas = [s["sla_id"] for s in before.slas]
+    after_slas = [s["sla_id"] for s in after.slas]
+    after_slas_set = set(after_slas)
+    return {
+        "consumer": consumer,
+        "contract_id": sc.contract_id,
+        "field": sc.field,
+        "relationship": f"({consumer})-[:CONSUMES_FIELD]->({sc.contract_id}.{sc.field})",
+        "fallback_before": before_c.get("fallback_enabled"),
+        "fallback_after": after_c.get("fallback_enabled"),
+        "removed_vulnerable_consumers": [s for s in before_vuln if s not in after_vuln_set],
+        "remaining_vulnerable_consumers": after_vuln,
+        "removed_affected_services": [s for s in before_aff if s not in after_aff_set],
+        "remaining_affected_services": after_aff,
+        "removed_slas": [s for s in before_slas if s not in after_slas_set],
+        "remaining_slas": after_slas,
+    }
+
+
 @dataclass(frozen=True)
 class SimulationResult:
     assumption: str
@@ -44,9 +91,7 @@ class SimulationResult:
 
     def as_dict(self) -> dict:
         return {"label": self.label, "assumption": self.assumption,
-                "before": {"verdict": self.before.verdict.value,
-                           "vulnerable_consumers": [c["service"] for c in self.before.vulnerable_consumers],
-                           "affected_services": [a["service"] for a in self.before.affected_services]},
+                "before": impact_snapshot(self.before),
                 "after": self.after.as_dict(),
                 "temp_graph": self.temp_graph, "temp_graph_deleted": self.temp_graph_deleted,
                 "original_unchanged": self.original_unchanged}

@@ -53,56 +53,92 @@ def analyze(graph, sc: Scenario) -> Report:
         raise AnalysisError(f"{sc.pr_id}: graph query failed: {type(e).__name__}: {e}") from e
 
 
-def _analyze(graph, sc: Scenario) -> Report:
-    base = {"producer": sc.producer, "contract": sc.contract_id, "field": sc.field}
+# --- Composable steps. analyze() runs them in order; the agent tool layer calls them individually. ---
 
-    cov = Q.rows(graph, Q.COVERAGE, base)
+def _base(sc: Scenario) -> dict:
+    return {"producer": sc.producer, "contract": sc.contract_id, "field": sc.field}
+
+
+def coverage(graph, sc: Scenario) -> dict:
+    cov = Q.rows(graph, Q.COVERAGE, _base(sc))
     if len(cov) > 1:
         raise AnalysisError(f"{sc.pr_id}: ambiguous coverage result ({len(cov)} rows) - graph is inconsistent")
-    contract_found = bool(cov)
-    field_found = contract_found and cov[0][4] is not None
-    mapping_status, coverage_note = (cov[0][2], cov[0][3]) if cov else (None, None)
+    if not cov:
+        return {"contract_found": False, "field_found": False, "mapping_status": None, "coverage_note": None,
+                "field_type": None, "field_required": None}
+    r = cov[0]
+    return {"contract_found": True, "field_found": r[4] is not None, "mapping_status": r[2], "coverage_note": r[3],
+            "field_type": r[5], "field_required": r[6]}
 
-    consumers, vulnerable, affected, slas = [], [], [], []
-    if field_found:
-        consumers = [{"service": r[0], "tier": r[1], "fallback_enabled": r[2], "evidence_source": r[3]}
-                     for r in Q.rows(graph, Q.CONSUMERS, base)]
-        vulnerable = [c for c in consumers if c["fallback_enabled"] is False]
 
-    if vulnerable:
-        # Direct consumers sit 1 service hop from the producer; dependents add their DEPENDS_ON path length.
-        best = {c["service"]: {"service": c["service"], "tier": c["tier"], "depth": 1,
-                               "path": [sc.producer, c["service"]]} for c in vulnerable}
-        names = [c["service"] for c in vulnerable]
-        for name, tier, hops, path in Q.rows(graph, Q.DOWNSTREAM, {"consumers": names}):
-            depth = 1 + hops
-            if name != sc.producer and (name not in best or depth < best[name]["depth"]):
-                best[name] = {"service": name, "tier": tier, "depth": depth,
-                              "path": [sc.producer] + list(reversed(path))}
-        affected = sorted(best.values(), key=lambda a: (a["depth"], a["service"]))
-        slas = [{"service": r[0], "sla_id": r[1], "name": r[2], "penalty_per_hour_usd": r[3], "synthetic": r[4]}
-                for r in Q.rows(graph, Q.SLAS, {"services": [a["service"] for a in affected]})]
+def consumers(graph, sc: Scenario) -> list:
+    return [{"service": r[0], "tier": r[1], "fallback_enabled": r[2], "evidence_source": r[3]}
+            for r in Q.rows(graph, Q.CONSUMERS, _base(sc))]
+
+
+def blast_radius(graph, sc: Scenario, vulnerable: list) -> tuple[list, list]:
+    """Affected services (shortest depth wins) and the SLAs they back."""
+    if not vulnerable:
+        return [], []
+    # Direct consumers sit 1 service hop from the producer; dependents add their DEPENDS_ON path length.
+    best = {c["service"]: {"service": c["service"], "tier": c["tier"], "depth": 1,
+                           "path": [sc.producer, c["service"]]} for c in vulnerable}
+    names = [c["service"] for c in vulnerable]
+    for name, tier, hops, path in Q.rows(graph, Q.DOWNSTREAM, {"consumers": names}):
+        depth = 1 + hops
+        if name != sc.producer and (name not in best or depth < best[name]["depth"]):
+            best[name] = {"service": name, "tier": tier, "depth": depth,
+                          "path": [sc.producer] + list(reversed(path))}
+    affected = sorted(best.values(), key=lambda a: (a["depth"], a["service"]))
+    slas = [{"service": r[0], "sla_id": r[1], "name": r[2], "penalty_per_hour_usd": r[3], "synthetic": r[4]}
+            for r in Q.rows(graph, Q.SLAS, {"services": [a["service"] for a in affected]})]
+    return affected, slas
+
+
+def centrality(graph, services: list) -> dict:
+    return {r[0]: r[1] for r in Q.rows(graph, Q.CENTRALITY, {"services": services, **Q.CENTRALITY_SAMPLING})}
+
+
+def incidents(graph, sc: Scenario) -> list:
+    return [{"incident_id": r[0], "severity": r[1], "summary": r[2], "synthetic": r[3], "resolved_by": r[4]}
+            for r in Q.rows(graph, Q.INCIDENTS, _base(sc))]
+
+
+def reviewers(graph, sc: Scenario, services: list) -> list:
+    return [{"handle": r[0], "display_name": r[1], "resolved_incidents": r[2], "authored_services": r[3]}
+            for r in Q.rows(graph, Q.REVIEWERS, {**_base(sc), "services": services})]
+
+
+def exposure(sc: Scenario, slas: list) -> dict | None:
+    if not slas:
+        return None
+    per_hour = sum(s["penalty_per_hour_usd"] for s in {s["sla_id"]: s for s in slas}.values())
+    return {"penalty_per_hour_usd": per_hour, "assumed_outage_hours": sc.assumed_outage_hours,
+            "assumed_total_usd": per_hour * sc.assumed_outage_hours, "label": EXPOSURE_LABEL}
+
+
+def _analyze(graph, sc: Scenario) -> Report:
+    cov = coverage(graph, sc)
+    contract_found, field_found = cov["contract_found"], cov["field_found"]
+    mapping_status, coverage_note = cov["mapping_status"], cov["coverage_note"]
+
+    found = consumers(graph, sc) if field_found else []
+    vulnerable = [c for c in found if c["fallback_enabled"] is False]
+    affected, slas = blast_radius(graph, sc, vulnerable)
 
     # Centrality, incidents and reviewers only run when there is an affected-service investigation.
-    centrality = incidents = reviewers = exposure = None
+    cent = inc = rev = None
     if affected:
         svc = [a["service"] for a in affected]
-        centrality = {r[0]: r[1] for r in Q.rows(graph, Q.CENTRALITY, {"services": svc, **Q.CENTRALITY_SAMPLING})}
-        incidents = [{"incident_id": r[0], "severity": r[1], "summary": r[2], "synthetic": r[3], "resolved_by": r[4]}
-                     for r in Q.rows(graph, Q.INCIDENTS, base)]
-        reviewers = [{"handle": r[0], "display_name": r[1], "resolved_incidents": r[2], "authored_services": r[3]}
-                     for r in Q.rows(graph, Q.REVIEWERS, {**base, "services": svc})]
-    if slas:
-        per_hour = sum(s["penalty_per_hour_usd"] for s in {s["sla_id"]: s for s in slas}.values())
-        exposure = {"penalty_per_hour_usd": per_hour, "assumed_outage_hours": sc.assumed_outage_hours,
-                    "assumed_total_usd": per_hour * sc.assumed_outage_hours, "label": EXPOSURE_LABEL}
+        cent, inc, rev = centrality(graph, svc), incidents(graph, sc), reviewers(graph, sc, svc)
+    exp = exposure(sc, slas)
 
     decision = decide(Facts(
         contract_found=contract_found, field_found=field_found, mapping_status=mapping_status,
         breaking=sc.breaking,
-        consumers=tuple((c["service"], c["fallback_enabled"], c["evidence_source"]) for c in consumers),
+        consumers=tuple((c["service"], c["fallback_enabled"], c["evidence_source"]) for c in found),
         critical_affected=tuple(a["service"] for a in affected if a["tier"] == "critical"),
         sla_ids=tuple(s["sla_id"] for s in slas),
     ))
-    return Report(sc, contract_found, field_found, mapping_status, coverage_note, consumers, vulnerable,
-                  affected, slas, centrality, incidents, reviewers, exposure, decision)
+    return Report(sc, contract_found, field_found, mapping_status, coverage_note, found, vulnerable,
+                  affected, slas, cent, inc, rev, exp, decision)

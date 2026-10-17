@@ -1,4 +1,4 @@
-"""Cleanup guarantees of the simulation, with mocks. Real copy/isolation is tested in integration."""
+"""Cleanup and before/after snapshot guarantees of the simulation, with mocks. Real copy/isolation is tested in integration."""
 import json
 from unittest import mock
 
@@ -42,9 +42,25 @@ class FakeDB:
 
 def fake_report(graph, sc):
     """Real Report objects: source graph -> BLOCK, copied graph -> CLEAR."""
-    verdict = Verdict.BLOCK if graph.name == "src" else Verdict.CLEAR
-    return Report(sc, True, True, "complete", "n", [], [], [], [], None, None, None, None,
-                  Decision(verdict, (f"graph reason {verdict.value}",)))
+    if graph.name == "src":
+        consumers = [{"service": "checkout-api", "tier": "critical", "fallback_enabled": False,
+                      "evidence_source": "synthetic: manifest"}]
+        vuln = list(consumers)
+        affected = [{"service": "checkout-api", "tier": "critical", "depth": 1,
+                     "path": ["pricing-engine", "checkout-api"]},
+                    {"service": "order-orchestrator", "tier": "critical", "depth": 2,
+                     "path": ["pricing-engine", "checkout-api", "order-orchestrator"]}]
+        slas = [{"service": "checkout-api", "sla_id": "SLA-CHECKOUT-99.95", "name": "Checkout",
+                 "penalty_per_hour_usd": 12000.0, "synthetic": True}]
+        exp = {"penalty_per_hour_usd": 12000.0, "assumed_outage_hours": 2.0, "assumed_total_usd": 24000.0,
+               "label": "ASSUMED"}
+        cent = {"checkout-api": 2.0, "order-orchestrator": 4.0}
+        return Report(sc, True, True, "complete", "n", consumers, vuln, affected, slas, cent, [], [], exp,
+                      Decision(Verdict.BLOCK, ("graph reason BLOCK",)))
+    consumers = [{"service": "checkout-api", "tier": "critical", "fallback_enabled": True,
+                  "evidence_source": "counterfactual-assumption"}]
+    return Report(sc, True, True, "complete", "n", consumers, [], [], [], None, None, None, None,
+                  Decision(Verdict.CLEAR, ("graph reason CLEAR",)))
 
 
 @pytest.fixture(autouse=True)
@@ -67,6 +83,23 @@ def test_counterfactual_marker_survives_standalone_report_and_json():
         assert "graph reason CLEAR" in payload["reasons"][-1]   # original graph-derived reason kept
     assert res.before.counterfactual is None
     assert res.before.decision.reasons == ("graph reason BLOCK",)
+
+
+def test_impact_snapshot_and_diff_reports():
+    res = simulation.simulate_consumer_fallback(FakeDB(), "src", SCENARIOS["PR-104"], "checkout-api")
+    before = simulation.impact_snapshot(res.before)
+    after = simulation.impact_snapshot(res.after)
+    changes = simulation.diff_reports(SCENARIOS["PR-104"], "checkout-api", res.before, res.after)
+    assert before["verdict"] == "BLOCK" and after["verdict"] == "CLEAR"
+    assert before["vulnerable_consumers"] == ["checkout-api"] and after["vulnerable_consumers"] == []
+    assert [a["service"] for a in before["affected_services"]] == ["checkout-api", "order-orchestrator"]
+    assert after["affected_services"] == [] and after["slas"] == [] and after["exposure"] is None
+    assert changes["consumer"] == "checkout-api"
+    assert changes["relationship"] == "(checkout-api)-[:CONSUMES_FIELD]->(pricing-api-v2.discount_tier)"
+    assert changes["fallback_before"] is False and changes["fallback_after"] is True
+    assert changes["removed_vulnerable_consumers"] == ["checkout-api"]
+    assert changes["removed_affected_services"] == ["checkout-api", "order-orchestrator"]
+    assert changes["removed_slas"] == ["SLA-CHECKOUT-99.95"]
 
 
 def test_temp_graph_deleted_after_success():

@@ -1,0 +1,116 @@
+{
+  "body": {
+    "affected_services": [
+      {
+        "depth": 1,
+        "path": [
+          "catalog-service",
+          "storefront-bff"
+        ],
+        "service": "storefront-bff",
+        "tier": "standard"
+      }
+    ],
+    "centrality": {
+      "storefront-bff": 0.0
+    },
+    "consumers": [
+      {
+        "evidence_source": "synthetic: storefront-bff consumer contract manifest",
+        "fallback_enabled": false,
+        "service": "storefront-bff",
+        "tier": "standard"
+      }
+    ],
+    "contract_found": true,
+    "coverage_note": "All internal consumers indexed from synthetic consumer-contract manifests.",
+    "data_label": "SYNTHETIC - fabricated demo data, not real customer or production data",
+    "exposure": null,
+    "field_found": true,
+    "incidents": [
+      {
+        "incident_id": "INC-1877",
+        "resolved_by": [
+          "eng-charlie"
+        ],
+        "severity": "SEV-4",
+        "summary": "sku casing change delayed storefront-bff cache refresh",
+        "synthetic": true
+      }
+    ],
+    "inventory": {
+      "affected_services": {
+        "items": [
+          "storefront-bff (depth 1)"
+        ],
+        "source": "deterministic analysis",
+        "status": "found"
+      },
+      "consumers": {
+        "items": [
+          "storefront-bff"
+        ],
+        "source": "deterministic analysis",
+        "status": "found"
+      },
+      "critical_services": {
+        "items": [],
+        "source": "deterministic analysis",
+        "status": "none_found"
+      },
+      "incidents": {
+        "items": [
+          "INC-1877"
+        ],
+        "source": "deterministic analysis",
+        "status": "found"
+      },
+      "reviewers": {
+        "items": [
+          "eng-charlie"
+        ],
+        "source": "deterministic analysis",
+        "status": "found"
+      },
+      "slas": {
+        "items": [],
+        "source": "deterministic analysis",
+        "status": "none_found"
+      },
+      "vulnerable_consumers": {
+        "items": [
+          "storefront-bff"
+        ],
+        "source": "deterministic analysis",
+        "status": "found"
+      }
+    },
+    "mapping_status": "complete",
+    "pr_id": "PR-114",
+    "reasons": [
+      "Breaking change reaches consumer(s) without fallback (storefront-bff) but no critical service or SLA is affected; review required."
+    ],
+    "reviewers": [
+      {
+        "authored_services": [],
+        "display_name": "Synthetic Engineer Charlie",
+        "handle": "eng-charlie",
+        "resolved_incidents": [
+          "INC-1877"
+        ]
+      }
+    ],
+    "slas": [],
+    "summary": "WARN: Breaking change reaches consumer(s) without fallback (storefront-bff) but no critical service or SLA is affected; review required. Evidence - vulnerable consumers: storefront-bff; affected critical services: none found in the checked graph; SLAs at risk: none found in the checked graph; incidents on this contract: INC-1877.",
+    "verdict": "WARN",
+    "vulnerable_consumers": [
+      {
+        "evidence_source": "synthetic: storefront-bff consumer contract manifest",
+        "fallback_enabled": false,
+        "service": "storefront-bff",
+        "tier": "standard"
+      }
+    ]
+  },
+  "status": 200
+}

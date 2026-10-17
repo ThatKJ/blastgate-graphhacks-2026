@@ -1,0 +1,7 @@
+{
+  "body": {
+    "error": "agent_provider_not_configured",
+    "message": "AGENT_PROVIDER is not set; set AGENT_PROVIDER=groq and GROQ_API_KEY"
+  },
+  "status": 503
+}

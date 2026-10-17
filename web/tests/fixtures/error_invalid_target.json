@@ -1,0 +1,7 @@
+{
+  "body": {
+    "error": "invalid_target",
+    "message": "search-indexer is not an indexed consumer of pricing-api-v2.discount_tier"
+  },
+  "status": 400
+}

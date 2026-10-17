@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BlastGate</title>
+  <meta name="description" content="Change-impact console: what could break if this change merges.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23121821'/%3E%3Cpath d='M4 4l8 8M12 4l-8 8' stroke='%23e5534b' stroke-width='2.2'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..100,400..800&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header class="top">
+    <p class="brand">BlastGate</p>
+    <h1>What could break if I merge this change?</h1>
+    <div class="health" id="health" aria-live="polite">Checking the backend…</div>
+    <p class="current" id="current" aria-live="polite"></p>
+  </header>
+
+  <div class="layout">
+    <nav class="rail" aria-labelledby="changes-heading">
+      <h2 id="changes-heading">Real code change</h2>
+      <ul class="scenarios" id="flagship"><li class="muted">Loading…</li></ul>
+      <ul class="scenarios"><li><button type="button" id="codegraph">
+        <span class="pr">Code-graph review</span><span class="title">The full git-diff review report</span></button></li></ul>
+      <h2 id="declared-heading" class="rail-sub">Declared scenarios</h2>
+      <p class="rail-note rail-note-tight">Changes declared by hand. The code graph is not used for these.</p>
+      <ul class="scenarios" id="scenarios" aria-labelledby="declared-heading"><li class="muted">Loading changes…</li></ul>
+      <p class="rail-note">Demo data is synthetic: services, engineers, incidents, SLAs and costs are made up.</p>
+    </nav>
+
+    <main id="main">
+      <section class="change" id="change" aria-live="polite">
+        <p class="empty">Connecting to the BlastGate server…</p>
+      </section>
+      <section class="loop-wrap" id="loop" aria-label="Agent loop"></section>
+      <p class="progress" id="progress" role="status" aria-live="polite"></p>
+      <section id="result" aria-label="Verdict and evidence"></section>
+      <section id="agent" aria-label="Agent investigation"></section>
+      <section id="simulation" aria-label="Counterfactual simulation"></section>
+    </main>
+  </div>
+</body>
+</html>

@@ -37,9 +37,22 @@ def graph(db):
 
 
 @pytest.mark.parametrize("pr, expected", [("PR-104", Verdict.BLOCK), ("PR-108", Verdict.WARN),
-                                          ("PR-112", Verdict.CLEAR)])
+                                          ("PR-112", Verdict.CLEAR), ("PR-114", Verdict.WARN)])
 def test_scenario_verdicts(graph, pr, expected):
     assert analyze(graph, SCENARIOS[pr]).verdict is expected
+
+
+def test_pr114_non_critical_impact_and_inc1877(graph):
+    r = analyze(graph, SCENARIOS["PR-114"])
+    assert r.verdict is Verdict.WARN
+    assert [c["service"] for c in r.vulnerable_consumers] == ["storefront-bff"]
+    assert r.affected_services == [{"service": "storefront-bff", "tier": "standard", "depth": 1,
+                                    "path": ["catalog-service", "storefront-bff"]}]
+    assert r.slas == [] and r.exposure is None
+    assert [i["incident_id"] for i in r.incidents] == ["INC-1877"]
+    assert r.incidents[0]["resolved_by"] == ["eng-charlie"]
+    assert [rev["handle"] for rev in r.reviewers] == ["eng-charlie"]
+    assert r.centrality == {"storefront-bff": 0.0}
 
 
 def test_pr104_evidence(graph):

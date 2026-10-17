@@ -1,0 +1,608 @@
+{
+  "body": {
+    "agent_mode": "deterministic-demo (rule-based planner, no LLM); tool selection follows graph tool results",
+    "assumptions": [
+      "SYNTHETIC - fabricated demo data, not real customer or production data",
+      "Declared by the PR, not verified: change 'type change: string -> object', new type object, breaking=True, local tests passing (represented, synthetic).",
+      "Exposure estimate $43,000 = synthetic penalty/hour x 2.0h assumed outage. ASSUMED exposure = sum(synthetic SLA penalty/hour) x scenario assumed outage hours. Not a measured or predicted loss."
+    ],
+    "explanation_status": "accepted",
+    "inferences": [
+      "order-orchestrator has the highest sampled betweenness among affected services, so failures there likely propagate furthest."
+    ],
+    "inventory": {
+      "affected_services": {
+        "items": [
+          "checkout-api (depth 1)",
+          "order-orchestrator (depth 2)",
+          "storefront-bff (depth 2)",
+          "invoice-worker (depth 3)",
+          "partner-gateway (depth 3)"
+        ],
+        "source": "deterministic analysis",
+        "status": "found"
+      },
+      "consumers": {
+        "items": [
+          "checkout-api"
+        ],
+        "source": "deterministic analysis",
+        "status": "found"
+      },
+      "critical_services": {
+        "items": [
+          "checkout-api",
+          "order-orchestrator"
+        ],
+        "source": "deterministic analysis",
+        "status": "found"
+      },
+      "incidents": {
+        "items": [
+          "INC-2041"
+        ],
+        "source": "deterministic analysis",
+        "status": "found"
+      },
+      "reviewers": {
+        "items": [
+          "eng-alpha",
+          "eng-bravo"
+        ],
+        "source": "deterministic analysis",
+        "status": "found"
+      },
+      "slas": {
+        "items": [
+          "SLA-CHECKOUT-99.95 (checkout-api)",
+          "SLA-INVOICE-24H (invoice-worker)",
+          "SLA-ORDERS-99.9 (order-orchestrator)"
+        ],
+        "source": "deterministic analysis",
+        "status": "found"
+      },
+      "vulnerable_consumers": {
+        "items": [
+          "checkout-api"
+        ],
+        "source": "deterministic analysis",
+        "status": "found"
+      }
+    },
+    "latency_ms": 332,
+    "memory": {
+      "code_reviews": [],
+      "graph": "blastgate_fx_mem",
+      "note": "History from earlier runs. It guides what to check but is not evidence: every fact below is revalidated against the current graph, and the verdict is computed without it.",
+      "planner_use": "The rule-based demo planner does not read history; code revalidates it below.",
+      "prior_investigations": [
+        {
+          "affected_services": [
+            "checkout-api",
+            "invoice-worker",
+            "order-orchestrator",
+            "partner-gateway",
+            "storefront-bff"
+          ],
+          "agent_mode": "deterministic-demo (rule-based planner, no LLM); tool selection follows graph tool results",
+          "at": "2026-10-17T22:07:33+00:00",
+          "change": "type change: string -> object",
+          "id": "inv-413841d49a1c",
+          "incidents": [
+            "INC-2041"
+          ],
+          "pr_id": "PR-104",
+          "reviewers": [
+            "eng-alpha",
+            "eng-bravo"
+          ],
+          "source": "declared by the PR (synthetic scenario)",
+          "verdict": "BLOCK"
+        }
+      ],
+      "recorded_id": "inv-69a22ec0e0cd",
+      "revalidation": [
+        {
+          "fact": "checkout-api was affected",
+          "from": [
+            "inv-413841d49a1c"
+          ],
+          "now": "still affected (current graph)"
+        },
+        {
+          "fact": "invoice-worker was affected",
+          "from": [
+            "inv-413841d49a1c"
+          ],
+          "now": "still affected (current graph)"
+        },
+        {
+          "fact": "order-orchestrator was affected",
+          "from": [
+            "inv-413841d49a1c"
+          ],
+          "now": "still affected (current graph)"
+        },
+        {
+          "fact": "partner-gateway was affected",
+          "from": [
+            "inv-413841d49a1c"
+          ],
+          "now": "still affected (current graph)"
+        },
+        {
+          "fact": "storefront-bff was affected",
+          "from": [
+            "inv-413841d49a1c"
+          ],
+          "now": "still affected (current graph)"
+        },
+        {
+          "fact": "incident INC-2041 was cited",
+          "from": [
+            "inv-413841d49a1c"
+          ],
+          "now": "still linked to this contract"
+        }
+      ],
+      "status": "recorded"
+    },
+    "model_explanation": "checkout-api consume(s) the field without a fallback; impact reaches 5 service(s) up to depth 3 and 3 synthetic SLA(s).",
+    "pr_id": "PR-104",
+    "recommendations": [
+      "Add a compatible fallback in checkout-api or version the field before merging.",
+      "Request review from eng-alpha, eng-bravo (synthetic engineers connected by the graph)."
+    ],
+    "simulation": null,
+    "stop_reason": "completed",
+    "summary": "BLOCK: Breaking change reaches consumer(s) without fallback: checkout-api. Evidence - vulnerable consumers: checkout-api; affected critical services: checkout-api, order-orchestrator; SLAs at risk: SLA-CHECKOUT-99.95 (checkout-api), SLA-INVOICE-24H (invoice-worker), SLA-ORDERS-99.9 (order-orchestrator); incidents on this contract: INC-2041.",
+    "tool_calls": 5,
+    "tool_trace": [
+      {
+        "arguments": {
+          "pr_id": "PR-104"
+        },
+        "data": {
+          "data_label": "SYNTHETIC - fabricated demo data, not real customer or production data",
+          "declared_by_pr": {
+            "breaking": true,
+            "change": "type change: string -> object",
+            "contract_id": "pricing-api-v2",
+            "field": "discount_tier",
+            "local_tests": "passing (represented, synthetic)",
+            "new_type": "object",
+            "producer": "pricing-engine",
+            "source": "declared by the PR (synthetic scenario)"
+          },
+          "graph": {
+            "contract_found": true,
+            "field_found": true,
+            "field_required": true,
+            "old_type": "string"
+          },
+          "pr_id": "PR-104",
+          "title": "Change discount_tier from string to object"
+        },
+        "duration_ms": 9,
+        "evidence": [
+          "Service:pricing-engine",
+          "Contract:pricing-api-v2",
+          "SchemaField:pricing-api-v2.discount_tier"
+        ],
+        "executed": true,
+        "next_actions": [
+          "inspect_contract_coverage"
+        ],
+        "purpose": "Validate that the PR's change target exists in the graph",
+        "rejected_reason": null,
+        "status": "success",
+        "step": 1,
+        "summary": "PR-104 changes pricing-api-v2.discount_tier on pricing-engine (string -> object)",
+        "tool": "inspect_change",
+        "unknowns": []
+      },
+      {
+        "arguments": {
+          "pr_id": "PR-104"
+        },
+        "data": {
+          "consumers": [
+            {
+              "evidence_source": "synthetic: checkout-api consumer contract (pact) manifest",
+              "fallback_enabled": false,
+              "service": "checkout-api",
+              "tier": "critical"
+            }
+          ],
+          "coverage_note": "All internal consumers indexed from synthetic consumer-contract manifests.",
+          "mapping_status": "complete",
+          "pr_id": "PR-104",
+          "vulnerable_consumers": [
+            "checkout-api"
+          ]
+        },
+        "duration_ms": 4,
+        "evidence": [
+          "Contract:pricing-api-v2",
+          "CONSUMES_FIELD:checkout-api->pricing-api-v2.discount_tier"
+        ],
+        "executed": true,
+        "next_actions": [
+          "trace_blast_radius"
+        ],
+        "purpose": "Previous result pointed to inspect_contract_coverage",
+        "rejected_reason": null,
+        "status": "warning",
+        "step": 2,
+        "summary": "Mapping complete; 1 indexed consumer(s) of discount_tier, 1 without fallback",
+        "tool": "inspect_contract_coverage",
+        "unknowns": []
+      },
+      {
+        "arguments": {
+          "pr_id": "PR-104"
+        },
+        "data": {
+          "affected_services": [
+            {
+              "depth": 1,
+              "path": [
+                "pricing-engine",
+                "checkout-api"
+              ],
+              "service": "checkout-api",
+              "tier": "critical"
+            },
+            {
+              "depth": 2,
+              "path": [
+                "pricing-engine",
+                "checkout-api",
+                "order-orchestrator"
+              ],
+              "service": "order-orchestrator",
+              "tier": "critical"
+            },
+            {
+              "depth": 2,
+              "path": [
+                "pricing-engine",
+                "checkout-api",
+                "storefront-bff"
+              ],
+              "service": "storefront-bff",
+              "tier": "standard"
+            },
+            {
+              "depth": 3,
+              "path": [
+                "pricing-engine",
+                "checkout-api",
+                "order-orchestrator",
+                "invoice-worker"
+              ],
+              "service": "invoice-worker",
+              "tier": "standard"
+            },
+            {
+              "depth": 3,
+              "path": [
+                "pricing-engine",
+                "checkout-api",
+                "order-orchestrator",
+                "partner-gateway"
+              ],
+              "service": "partner-gateway",
+              "tier": "standard"
+            }
+          ],
+          "depth_convention": "direct consumer = 1; each DEPENDS_ON hop +1; SLA links are not hops",
+          "exposure_estimate": {
+            "assumed_outage_hours": 2.0,
+            "assumed_total_usd": 43000.0,
+            "label": "ASSUMED exposure = sum(synthetic SLA penalty/hour) x scenario assumed outage hours. Not a measured or predicted loss.",
+            "penalty_per_hour_usd": 21500
+          },
+          "pr_id": "PR-104",
+          "slas": [
+            {
+              "name": "Checkout availability 99.95%",
+              "penalty_per_hour_usd": 12000,
+              "service": "checkout-api",
+              "sla_id": "SLA-CHECKOUT-99.95",
+              "synthetic": true
+            },
+            {
+              "name": "Invoice issued within 24h",
+              "penalty_per_hour_usd": 1500,
+              "service": "invoice-worker",
+              "sla_id": "SLA-INVOICE-24H",
+              "synthetic": true
+            },
+            {
+              "name": "Order fulfilment 99.9%",
+              "penalty_per_hour_usd": 8000,
+              "service": "order-orchestrator",
+              "sla_id": "SLA-ORDERS-99.9",
+              "synthetic": true
+            }
+          ],
+          "vulnerable_consumers": [
+            "checkout-api"
+          ]
+        },
+        "duration_ms": 5,
+        "evidence": [
+          "Service:checkout-api",
+          "Service:order-orchestrator",
+          "Service:storefront-bff",
+          "Service:invoice-worker",
+          "Service:partner-gateway",
+          "SLAContract:SLA-CHECKOUT-99.95",
+          "SLAContract:SLA-INVOICE-24H",
+          "SLAContract:SLA-ORDERS-99.9"
+        ],
+        "executed": true,
+        "next_actions": [
+          "analyze_network_criticality",
+          "retrieve_incidents_and_reviewers"
+        ],
+        "purpose": "Previous result pointed to trace_blast_radius",
+        "rejected_reason": null,
+        "status": "warning",
+        "step": 3,
+        "summary": "5 affected service(s) up to depth 3, 3 synthetic SLA(s)",
+        "tool": "trace_blast_radius",
+        "unknowns": []
+      },
+      {
+        "arguments": {
+          "services": [
+            "checkout-api",
+            "order-orchestrator",
+            "storefront-bff",
+            "invoice-worker",
+            "partner-gateway"
+          ]
+        },
+        "data": {
+          "algorithm": "algo.betweenness",
+          "note": "FalkorDB algo.betweenness over Service/DEPENDS_ON, sampled approximation with a pinned seed {'size': 32, 'seed': 1}. Highlights chokepoints for review; never an input to the verdict.",
+          "scores": {
+            "checkout-api": 2.0,
+            "invoice-worker": 0.0,
+            "order-orchestrator": 4.0,
+            "partner-gateway": 0.0,
+            "storefront-bff": 0.0
+          }
+        },
+        "duration_ms": 2,
+        "evidence": [
+          "Service:checkout-api",
+          "Service:order-orchestrator",
+          "Service:storefront-bff",
+          "Service:invoice-worker",
+          "Service:partner-gateway"
+        ],
+        "executed": true,
+        "next_actions": [],
+        "purpose": "Rank affected services as dependency chokepoints",
+        "rejected_reason": null,
+        "status": "success",
+        "step": 4,
+        "summary": "Betweenness for 5 service(s); highest: order-orchestrator",
+        "tool": "analyze_network_criticality",
+        "unknowns": []
+      },
+      {
+        "arguments": {
+          "pr_id": "PR-104",
+          "services": [
+            "checkout-api",
+            "order-orchestrator",
+            "storefront-bff",
+            "invoice-worker",
+            "partner-gateway"
+          ]
+        },
+        "data": {
+          "data_label": "SYNTHETIC - fabricated demo data, not real customer or production data",
+          "incidents": [
+            {
+              "incident_id": "INC-2041",
+              "resolved_by": [
+                "eng-alpha"
+              ],
+              "severity": "SEV-2",
+              "summary": "discount_tier enum rename broke checkout-api price parsing",
+              "synthetic": true
+            }
+          ],
+          "pr_id": "PR-104",
+          "reviewers": [
+            {
+              "authored_services": [
+                "checkout-api"
+              ],
+              "display_name": "Synthetic Engineer Alpha",
+              "handle": "eng-alpha",
+              "resolved_incidents": [
+                "INC-2041"
+              ]
+            },
+            {
+              "authored_services": [
+                "order-orchestrator"
+              ],
+              "display_name": "Synthetic Engineer Bravo",
+              "handle": "eng-bravo",
+              "resolved_incidents": []
+            }
+          ]
+        },
+        "duration_ms": 4,
+        "evidence": [
+          "Incident:INC-2041",
+          "Engineer:eng-alpha",
+          "Engineer:eng-bravo"
+        ],
+        "executed": true,
+        "next_actions": [],
+        "purpose": "Find incident history and reviewers for the affected path",
+        "rejected_reason": null,
+        "status": "success",
+        "step": 5,
+        "summary": "1 synthetic incident(s) on pricing-api-v2; 2 candidate reviewer(s)",
+        "tool": "retrieve_incidents_and_reviewers",
+        "unknowns": []
+      }
+    ],
+    "unknowns": [],
+    "unsupported_references": [],
+    "verdict": "BLOCK",
+    "verdict_reasons": [
+      "Breaking change reaches consumer(s) without fallback: checkout-api.",
+      "Affected critical services: checkout-api, order-orchestrator; SLAs: SLA-CHECKOUT-99.95, SLA-INVOICE-24H, SLA-ORDERS-99.9."
+    ],
+    "verdict_source": "deterministic engine (blastgate.verdict.decide); planner output cannot change it",
+    "verified_facts": [
+      {
+        "claim": "Graph models pricing-api-v2.discount_tier (type string) exposed by pricing-engine.",
+        "evidence": [
+          "Service:pricing-engine",
+          "Contract:pricing-api-v2",
+          "SchemaField:pricing-api-v2.discount_tier"
+        ],
+        "source_tool": "inspect_change"
+      },
+      {
+        "claim": "Consumer mapping for this contract is 'complete'.",
+        "evidence": [
+          "Contract:pricing-api-v2"
+        ],
+        "source_tool": "inspect_contract_coverage"
+      },
+      {
+        "claim": "checkout-api consumes the field with fallback_enabled=False (evidence: synthetic: checkout-api consumer contract (pact) manifest).",
+        "evidence": [
+          "CONSUMES_FIELD:checkout-api->pricing-api-v2.discount_tier"
+        ],
+        "source_tool": "inspect_contract_coverage"
+      },
+      {
+        "claim": "checkout-api (critical) is affected at depth 1 via pricing-engine -> checkout-api.",
+        "evidence": [
+          "Service:checkout-api"
+        ],
+        "source_tool": "trace_blast_radius"
+      },
+      {
+        "claim": "order-orchestrator (critical) is affected at depth 2 via pricing-engine -> checkout-api -> order-orchestrator.",
+        "evidence": [
+          "Service:order-orchestrator"
+        ],
+        "source_tool": "trace_blast_radius"
+      },
+      {
+        "claim": "storefront-bff (standard) is affected at depth 2 via pricing-engine -> checkout-api -> storefront-bff.",
+        "evidence": [
+          "Service:storefront-bff"
+        ],
+        "source_tool": "trace_blast_radius"
+      },
+      {
+        "claim": "invoice-worker (standard) is affected at depth 3 via pricing-engine -> checkout-api -> order-orchestrator -> invoice-worker.",
+        "evidence": [
+          "Service:invoice-worker"
+        ],
+        "source_tool": "trace_blast_radius"
+      },
+      {
+        "claim": "partner-gateway (standard) is affected at depth 3 via pricing-engine -> checkout-api -> order-orchestrator -> partner-gateway.",
+        "evidence": [
+          "Service:partner-gateway"
+        ],
+        "source_tool": "trace_blast_radius"
+      },
+      {
+        "claim": "Synthetic SLA SLA-CHECKOUT-99.95 is backed by checkout-api (assumed penalty $12000/h).",
+        "evidence": [
+          "SLAContract:SLA-CHECKOUT-99.95"
+        ],
+        "source_tool": "trace_blast_radius"
+      },
+      {
+        "claim": "Synthetic SLA SLA-INVOICE-24H is backed by invoice-worker (assumed penalty $1500/h).",
+        "evidence": [
+          "SLAContract:SLA-INVOICE-24H"
+        ],
+        "source_tool": "trace_blast_radius"
+      },
+      {
+        "claim": "Synthetic SLA SLA-ORDERS-99.9 is backed by order-orchestrator (assumed penalty $8000/h).",
+        "evidence": [
+          "SLAContract:SLA-ORDERS-99.9"
+        ],
+        "source_tool": "trace_blast_radius"
+      },
+      {
+        "claim": "Sampled betweenness of order-orchestrator is 4.0.",
+        "evidence": [
+          "Service:order-orchestrator"
+        ],
+        "source_tool": "analyze_network_criticality"
+      },
+      {
+        "claim": "Sampled betweenness of checkout-api is 2.0.",
+        "evidence": [
+          "Service:checkout-api"
+        ],
+        "source_tool": "analyze_network_criticality"
+      },
+      {
+        "claim": "Sampled betweenness of invoice-worker is 0.0.",
+        "evidence": [
+          "Service:invoice-worker"
+        ],
+        "source_tool": "analyze_network_criticality"
+      },
+      {
+        "claim": "Sampled betweenness of partner-gateway is 0.0.",
+        "evidence": [
+          "Service:partner-gateway"
+        ],
+        "source_tool": "analyze_network_criticality"
+      },
+      {
+        "claim": "Sampled betweenness of storefront-bff is 0.0.",
+        "evidence": [
+          "Service:storefront-bff"
+        ],
+        "source_tool": "analyze_network_criticality"
+      },
+      {
+        "claim": "Synthetic incident INC-2041 (SEV-2) was caused by a change to this contract; resolved by eng-alpha.",
+        "evidence": [
+          "Incident:INC-2041"
+        ],
+        "source_tool": "retrieve_incidents_and_reviewers"
+      },
+      {
+        "claim": "eng-alpha is connected via incidents ['INC-2041'] and services ['checkout-api'].",
+        "evidence": [
+          "Engineer:eng-alpha"
+        ],
+        "source_tool": "retrieve_incidents_and_reviewers"
+      },
+      {
+        "claim": "eng-bravo is connected via incidents [] and services ['order-orchestrator'].",
+        "evidence": [
+          "Engineer:eng-bravo"
+        ],
+        "source_tool": "retrieve_incidents_and_reviewers"
+      }
+    ],
+    "warnings": []
+  },
+  "status": 200
+}

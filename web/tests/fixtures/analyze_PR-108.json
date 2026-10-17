@@ -1,0 +1,61 @@
+{
+  "body": {
+    "affected_services": [],
+    "centrality": null,
+    "consumers": [],
+    "contract_found": true,
+    "coverage_note": "External partner consumers are not mapped; only internal subscribers are indexed.",
+    "data_label": "SYNTHETIC - fabricated demo data, not real customer or production data",
+    "exposure": null,
+    "field_found": true,
+    "incidents": null,
+    "inventory": {
+      "affected_services": {
+        "items": [],
+        "source": "deterministic analysis",
+        "status": "none_found"
+      },
+      "consumers": {
+        "items": [],
+        "source": "deterministic analysis",
+        "status": "none_found"
+      },
+      "critical_services": {
+        "items": [],
+        "source": "deterministic analysis",
+        "status": "none_found"
+      },
+      "incidents": {
+        "items": [],
+        "source": "not looked up in this investigation",
+        "status": "not_checked"
+      },
+      "reviewers": {
+        "items": [],
+        "source": "not looked up in this investigation",
+        "status": "not_checked"
+      },
+      "slas": {
+        "items": [],
+        "source": "deterministic analysis",
+        "status": "none_found"
+      },
+      "vulnerable_consumers": {
+        "items": [],
+        "source": "deterministic analysis",
+        "status": "none_found"
+      }
+    },
+    "mapping_status": "incomplete",
+    "pr_id": "PR-108",
+    "reasons": [
+      "Consumer mapping is 'incomplete', not complete: no indexed vulnerable consumer does not mean no consumer."
+    ],
+    "reviewers": null,
+    "slas": [],
+    "summary": "WARN: Consumer mapping is 'incomplete', not complete: no indexed vulnerable consumer does not mean no consumer. Evidence - vulnerable consumers: none found in the checked graph; affected critical services: none found in the checked graph; SLAs at risk: none found in the checked graph; incidents on this contract: not checked.",
+    "verdict": "WARN",
+    "vulnerable_consumers": []
+  },
+  "status": 200
+}

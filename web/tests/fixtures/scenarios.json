@@ -1,0 +1,61 @@
+{
+  "body": [
+    {
+      "breaking": true,
+      "change": "type change: string -> object",
+      "code_change": null,
+      "contract_id": "pricing-api-v2",
+      "data_label": "SYNTHETIC - fabricated demo data, not real customer or production data",
+      "field": "discount_tier",
+      "new_type": "object",
+      "old_type_source": "graph (SchemaField.field_type), returned by /api/analyze and inspect_change",
+      "pr_id": "PR-104",
+      "producer": "pricing-engine",
+      "source": "declared by the PR (synthetic scenario)",
+      "title": "Change discount_tier from string to object"
+    },
+    {
+      "breaking": true,
+      "change": "encoding change: hex -> base64",
+      "code_change": null,
+      "contract_id": "partner-webhook-v1",
+      "data_label": "SYNTHETIC - fabricated demo data, not real customer or production data",
+      "field": "payload_signature",
+      "new_type": "string(base64)",
+      "old_type_source": "graph (SchemaField.field_type), returned by /api/analyze and inspect_change",
+      "pr_id": "PR-108",
+      "producer": "partner-gateway",
+      "source": "declared by the PR (synthetic scenario)",
+      "title": "Change partner webhook payload_signature encoding"
+    },
+    {
+      "breaking": true,
+      "change": "format change on optional field",
+      "code_change": null,
+      "contract_id": "catalog-api-v1",
+      "data_label": "SYNTHETIC - fabricated demo data, not real customer or production data",
+      "field": "promo_badge",
+      "new_type": "string(badge-v2), optional",
+      "old_type_source": "graph (SchemaField.field_type), returned by /api/analyze and inspect_change",
+      "pr_id": "PR-112",
+      "producer": "catalog-service",
+      "source": "declared by the PR (synthetic scenario)",
+      "title": "Change optional catalog promo_badge format"
+    },
+    {
+      "breaking": true,
+      "change": "format change: string -> string(urn)",
+      "code_change": null,
+      "contract_id": "catalog-api-v1",
+      "data_label": "SYNTHETIC - fabricated demo data, not real customer or production data",
+      "field": "sku",
+      "new_type": "string(urn)",
+      "old_type_source": "graph (SchemaField.field_type), returned by /api/analyze and inspect_change",
+      "pr_id": "PR-114",
+      "producer": "catalog-service",
+      "source": "declared by the PR (synthetic scenario)",
+      "title": "Change required catalog sku format"
+    }
+  ],
+  "status": 200
+}

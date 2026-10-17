@@ -1,0 +1,12 @@
+{
+  "services": [
+    {"service": "pricing-engine", "paths": ["pricing_engine/"]},
+    {"service": "checkout-api", "paths": ["checkout_api/"]},
+    {"service": "catalog-service", "paths": ["catalog_service/"]}
+  ],
+  "contracts": [
+    {"symbol": "contracts/pricing.py::PriceQuote", "producer": "pricing-engine",
+     "contract_id": "pricing-api-v2",
+     "fields": {"discount_tier": "discount_tier", "final_price": "final_price"}}
+  ]
+}

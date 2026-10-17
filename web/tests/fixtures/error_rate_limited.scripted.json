@@ -1,0 +1,9 @@
+{
+  "body": {
+    "error": "provider_rate_limited",
+    "message": "Groq rate limit reached (HTTP 429); retry after 7s.",
+    "partial_trace": [],
+    "retry_after": "7"
+  },
+  "status": 429
+}

@@ -1,0 +1,70 @@
+{
+  "body": {
+    "affected_services": [],
+    "centrality": null,
+    "consumers": [
+      {
+        "evidence_source": "synthetic: search-indexer contract test asserting null-safe default",
+        "fallback_enabled": true,
+        "service": "search-indexer",
+        "tier": "standard"
+      }
+    ],
+    "contract_found": true,
+    "coverage_note": "All internal consumers indexed from synthetic consumer-contract manifests.",
+    "data_label": "SYNTHETIC - fabricated demo data, not real customer or production data",
+    "exposure": null,
+    "field_found": true,
+    "incidents": null,
+    "inventory": {
+      "affected_services": {
+        "items": [],
+        "source": "deterministic analysis",
+        "status": "none_found"
+      },
+      "consumers": {
+        "items": [
+          "search-indexer"
+        ],
+        "source": "deterministic analysis",
+        "status": "found"
+      },
+      "critical_services": {
+        "items": [],
+        "source": "deterministic analysis",
+        "status": "none_found"
+      },
+      "incidents": {
+        "items": [],
+        "source": "not looked up in this investigation",
+        "status": "not_checked"
+      },
+      "reviewers": {
+        "items": [],
+        "source": "not looked up in this investigation",
+        "status": "not_checked"
+      },
+      "slas": {
+        "items": [],
+        "source": "deterministic analysis",
+        "status": "none_found"
+      },
+      "vulnerable_consumers": {
+        "items": [],
+        "source": "deterministic analysis",
+        "status": "none_found"
+      }
+    },
+    "mapping_status": "complete",
+    "pr_id": "PR-112",
+    "reasons": [
+      "Coverage complete; all 1 indexed consumer(s) have an evidenced fallback (under modelled scenario assumptions)."
+    ],
+    "reviewers": null,
+    "slas": [],
+    "summary": "CLEAR: Coverage complete; all 1 indexed consumer(s) have an evidenced fallback (under modelled scenario assumptions). Evidence - vulnerable consumers: none found in the checked graph; affected critical services: none found in the checked graph; SLAs at risk: none found in the checked graph; incidents on this contract: not checked.",
+    "verdict": "CLEAR",
+    "vulnerable_consumers": []
+  },
+  "status": 200
+}

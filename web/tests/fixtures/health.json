@@ -1,0 +1,24 @@
+{
+  "body": {
+    "agent_provider": {
+      "configured": true,
+      "detail": "deterministic-demo (rule-based, no LLM)",
+      "live_access": null,
+      "model": null,
+      "name": "deterministic"
+    },
+    "codegraph": {
+      "memory_enabled": false,
+      "registered": [],
+      "report_available": true
+    },
+    "falkordb": "up",
+    "features": [
+      "codegraph_report",
+      "codegraph_scenarios",
+      "investigation_memory"
+    ],
+    "status": "ok"
+  },
+  "status": 200
+}
