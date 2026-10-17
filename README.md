@@ -3,18 +3,20 @@
 Evidence-first pre-merge change-impact analysis on **FalkorDB**.
 GraphHacks Track 01: *Agents That Act on Connected Data*.
 
-BlastGate investigates a proposed API or schema change. It traces the change's impact through connected services in
-a FalkorDB graph, retrieves the relevant evidence, and recommends **BLOCK**, **WARN** or **CLEAR**. It follows
-this path: changed field → consumer → downstream services → business SLA → relevant incident → reviewer → mitigation.
+> **BlastGate doesn't just display a graph. It uses connected graph data to investigate a change, guide its next steps, and explain the decision it makes.**
 
-- **Milestone 1:** the graph model, a deterministic verdict engine and a counterfactual simulation.
-- **Milestone 2:** a FastAPI backend, a typed domain-tool layer, a **real MCP server (stdio)**, an
-  evidence-driven agent whose live LLM runs on **GroqCloud**, and the `web/` engineering console with an
-  interactive graph evidence & counterfactual explorer.
+Imagine a developer changes `PriceQuote.discount_tier` from a string to an object (`dict`). That looks like one small code change, but the consequences can cross multiple services.
 
-> **All data is synthetic.** Services, engineers (`eng-alpha`…), SLAs, penalty rates and incidents are fabricated
-> for this demo. They describe no real company, person, customer or measured loss. **Groq powers live LLM
-> inference; synthetic data powers the demo.** Nothing here is production-validated.
+1. **Detect & Code Graph:** BlastGate analyzes the real Git change with Gristle, constructing an AST-level code graph in FalkorDB.
+2. **Validated Contract Mapping:** Connects the code change to the service graph through contract manifests (`blastgate.map.json`) from the base commit without string guessing.
+3. **Multi-Hop Agent Investigation:** The agent investigates the connected systems through FalkorDB-backed MCP tools. It discovers that `checkout-api` lacks a fallback, traces downstream dependencies, and retrieves relevant synthetic SLA and incident evidence.
+4. **Deterministic Verdict:** Based on that evidence, BlastGate's deterministic policy returns **BLOCK**. The interface shows the affected services, reasons, evidence, recommended tests, and reviewers.
+5. **Counterfactual Simulation:** Finally, we run a counterfactual simulation. Adding an assumed fallback changes the outcome to **CLEAR** on a temporary graph copy (`GRAPH.COPY`), but the original decision remains BLOCK. The simulation is explicitly marked unverified until contract tests pass.
+
+- **Milestone 1:** The graph model, a deterministic verdict engine, and counterfactual simulation on an isolated `GRAPH.COPY`.
+- **Milestone 2:** A FastAPI backend, typed MCP tool server (stdio), evidence-driven agent with GroqCloud inference option, and the obsidian-themed engineering console with interactive SVG graph evidence & counterfactual explorer.
+
+> **All data is synthetic.** Services, engineers (`eng-alpha`…), SLAs, penalty rates and incidents are fabricated for this demo. They describe no real company, person, customer or measured loss. **Groq powers live LLM inference; synthetic data powers the demo.** Nothing here is production-validated.
 
 ## Track 01 at a glance
 
