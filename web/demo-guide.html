@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Demo Guide &amp; Quickstart — BlastGate Judge Walkthrough</title>
+  <meta name="description" content="Step-by-step judge walkthrough for evaluating BlastGate Track 01, local setup commands, and self-diagnostic troubleshooting.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23080a0f'/%3E%3Cpath d='M3 3l10 10M13 3l-10 10' stroke='%2338bdf8' stroke-width='2.2' stroke-linecap='round'/%3E%3Ccircle cx='8' cy='8' r='2.5' fill='%238b5cf6'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..100,400..800&family=JetBrains+Mono:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="site-body">
+  <header class="site-header">
+    <div class="site-nav-container">
+      <a href="/" class="brand-link" aria-label="BlastGate Home">
+        <span class="brand">BlastGate</span>
+        <span class="brand-sub">Graph Intelligence</span>
+      </a>
+
+      <nav class="site-nav" id="site-nav" aria-label="Main Navigation">
+        <a href="/" class="site-nav-link">Overview</a>
+        <a href="/how-it-works" class="site-nav-link">How It Works</a>
+        <a href="/architecture" class="site-nav-link">Architecture</a>
+        <a href="/demo-guide" class="site-nav-link active" aria-current="page">Demo Guide</a>
+        <a href="https://github.com/ThatKJ/blastgate-graphhacks-2026" class="site-nav-link" target="_blank" rel="noopener">GitHub ↗</a>
+      </nav>
+
+      <div class="site-header-actions">
+        <a href="/console#PR-900" class="btn-primary cta-btn">Explore Live Demo →</a>
+        <button type="button" class="mobile-toggle" id="mobile-toggle" aria-label="Toggle Navigation Menu">☰</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-content">
+    <div class="site-container">
+      <div class="page-header">
+        <div class="hero-badge">
+          <span class="badge-dot"></span>
+          <span>Judge Walkthrough · Quickstart &amp; Commands</span>
+        </div>
+        <h1 class="page-title">Judge Walkthrough &amp; Quickstart</h1>
+        <p class="page-lead">
+          Follow this 3-minute evaluation track to verify all five Track 01 criteria on the live application, or reproduce the environment locally with copyable commands.
+        </p>
+      </div>
+
+      <!-- Quick Links Callout -->
+      <div class="quick-callout">
+        <div class="callout-icon">⚡</div>
+        <div class="callout-body">
+          <h3>Running Live Locally on Port 8766</h3>
+          <p>If you already have the server running, jump directly to the flagship demo:</p>
+          <div class="callout-actions">
+            <a href="/console#PR-900" class="btn-primary">Launch PR-900 Console ↗</a>
+            <a href="/console#tour" class="btn-secondary">Start Guided Tour Mode</a>
+            <a href="/console#codegraph" class="btn-ghost">View Full Code-Graph Review</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3-Minute Judge Evaluation Track -->
+      <section class="guide-section">
+        <h2 class="guide-heading">The 3-Minute Judge Evaluation Track</h2>
+        <div class="guide-steps">
+          <!-- Step 1 -->
+          <div class="guide-step-card">
+            <div class="guide-step-num">Step 1</div>
+            <div class="guide-step-content">
+              <h3>Start with PR-900: Real Code Change</h3>
+              <p>
+                Open <a href="/console#PR-900"><code>/console#PR-900</code></a>. Observe the top banner showing the real Git diff in <code>contracts/pricing.py</code>: <code>PriceQuote.discount_tier: str → dict</code>.
+              </p>
+              <p>
+                Click <em>"Derived from a git diff by the code graph"</em> to expand the exact diff lines and 6 connected code entities discovered by Gristle.
+              </p>
+              <div class="guide-check">✓ Demonstrates: Real code change integration with Gristle AST code graphs.</div>
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="guide-step-card">
+            <div class="guide-step-num">Step 2</div>
+            <div class="guide-step-content">
+              <h3>Run the Agent Investigation</h3>
+              <p>
+                Click the <strong>"Investigate with agent"</strong> button. The 8-stage progress pipeline transitions into action.
+              </p>
+              <p>
+                Scroll down to the <strong>Agent investigation</strong> section. Inspect the 5-step MCP tool timeline:
+              </p>
+              <ul>
+                <li><code>inspect_change</code>: Discovers producer <code>pricing-engine</code>.</li>
+                <li><code>inspect_contract_coverage</code>: Identifies <code>checkout-api</code> has no fallback.</li>
+                <li><code>trace_blast_radius</code>: Discovers downstream cascade to <code>order-orchestrator</code>.</li>
+                <li><code>analyze_network_criticality</code>: Identifies betweenness centrality of <strong>4.0 (highest)</strong> on <code>order-orchestrator</code>.</li>
+                <li><code>retrieve_incidents_and_reviewers</code>: Connects past outage <code>INC-2041</code> and assigns reviewers <code>eng-alpha</code> and <code>eng-bravo</code>.</li>
+              </ul>
+              <div class="guide-check">✓ Demonstrates: Multi-hop reasoning, MCP tool selection, and graph algorithms as tools.</div>
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="guide-step-card">
+            <div class="guide-step-num">Step 3</div>
+            <div class="guide-step-content">
+              <h3>Inspect the Deterministic BLOCK Verdict &amp; Evidence</h3>
+              <p>
+                Observe the massive high-signal <strong>BLOCK</strong> stamp. Notice the two explicit graph reasons:
+              </p>
+              <ol>
+                <li>A breaking change reaches a consumer without fallback (<code>checkout-api</code>).</li>
+                <li>Impacts critical services with <strong>$43,000 assumed SLA risk</strong> across <code>SLA-CHECKOUT-99.95</code> and <code>SLA-ORDERS-99.9</code>.</li>
+              </ol>
+              <p>
+                Click nodes and edges in the interactive <strong>Impact map &amp; graph evidence explorer</strong>. Selecting <code>checkout-api</code> updates the Evidence Inspector with exact FalkorDB node attributes and Cypher paths.
+              </p>
+              <div class="guide-check">✓ Demonstrates: Actions based on graph evidence &amp; fully explainable results.</div>
+            </div>
+          </div>
+
+          <!-- Step 4 -->
+          <div class="guide-step-card">
+            <div class="guide-step-num">Step 4</div>
+            <div class="guide-step-content">
+              <h3>Simulate a Counterfactual Mitigation</h3>
+              <p>
+                Scroll down to the <strong>Counterfactual simulation</strong> panel. Select consumer <code>checkout-api</code>, keep the assumption <em>"checkout-api adds a backward-compatible fallback for discount_tier"</em>, and click <strong>"Run simulation"</strong>.
+              </p>
+              <p>
+                Observe the side-by-side comparison:
+              </p>
+              <ul>
+                <li><strong>Active graph:</strong> Verdict remains strictly <strong>BLOCK</strong> (production untouched).</li>
+                <li><strong>Simulated graph:</strong> Cloned onto <code>GRAPH.COPY</code> in FalkorDB; verdict shifts to <strong>CLEAR</strong>.</li>
+                <li><strong>Topology Diff:</strong> Shows 1 edge safely mitigated and risk dropped to $0. Explicitly marked <em>UNVERIFIED</em>.</li>
+              </ul>
+              <div class="guide-check">✓ Demonstrates: Safe isolated counterfactual reasoning without mutating production state.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Local Setup & Quickstart Commands -->
+      <section class="guide-section">
+        <h2 class="guide-heading">Local Setup &amp; Reproduction Commands</h2>
+        <p class="section-sub">Everything needed to run the complete stack from source.</p>
+
+        <div class="code-step">
+          <h4>1. Start FalkorDB in Docker</h4>
+          <pre class="code-block"><code>docker run -p 6379:6379 -d --name blastgate-falkordb falkordb/falkordb:latest</code></pre>
+        </div>
+
+        <div class="code-step">
+          <h4>2. Create Virtual Environments &amp; Seed Service Graph</h4>
+          <pre class="code-block"><code>python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+.venv/bin/python blastgate_milestone1.py</code></pre>
+        </div>
+
+        <div class="code-step">
+          <h4>3. Generate Code-Graph Review with Gristle</h4>
+          <pre class="code-block"><code>./scripts/setup_gristle.sh
+BLASTGATE_GRISTLE_BIN=.gristle-venv/bin/gristle BLASTGATE_MEMORY_GRAPH=blastgate_memory .venv/bin/python scripts/codegraph_demo.py</code></pre>
+        </div>
+
+        <div class="code-step">
+          <h4>4. Launch Demo Server</h4>
+          <pre class="code-block"><code>PORT=8766 ./scripts/start_demo.sh</code></pre>
+          <p class="code-note">The application and console are served on: <code>http://127.0.0.1:8766/</code></p>
+        </div>
+
+        <div class="code-step">
+          <h4>5. Run Verification Regression Suites</h4>
+          <pre class="code-block"><code># Run full pytest suite (217 passed, 11 skipped)
+.venv/bin/pytest
+
+# Run frontend Node view test suite (25/25 passed)
+node --test web/tests/view.test.mjs
+
+# Run live Gristle integration tests
+BLASTGATE_GRISTLE_BIN="$(pwd)/.gristle-venv/bin/gristle" .venv/bin/pytest tests/integration/test_codegraph_live.py</code></pre>
+        </div>
+      </section>
+
+      <!-- Troubleshooting -->
+      <section class="guide-section">
+        <h2 class="guide-heading">Self-Diagnostics &amp; Troubleshooting</h2>
+        <div class="trouble-grid">
+          <div class="trouble-card">
+            <h4>Port 8766 in use</h4>
+            <p>Another BlastGate instance or process is using port 8766. Run with an alternate port:</p>
+            <code>PORT=8770 ./scripts/start_demo.sh</code>
+          </div>
+
+          <div class="trouble-card">
+            <h4>FalkorDB unreachable</h4>
+            <p>Ensure the Docker container is active: <code>docker ps</code>. Restart if stopped:</p>
+            <code>docker start blastgate-falkordb</code>
+          </div>
+
+          <div class="trouble-card">
+            <h4>Missing codegraph_demo_out/report.json</h4>
+            <p>Generate the AST review report before starting the server:</p>
+            <code>.venv/bin/python scripts/codegraph_demo.py</code>
+          </div>
+
+          <div class="trouble-card">
+            <h4>Verify Server Readiness</h4>
+            <p>Check the backend health and readiness endpoints directly:</p>
+            <code>curl -s http://127.0.0.1:8766/ready</code>
+          </div>
+        </div>
+      </section>
+
+      <!-- CTA -->
+      <div class="page-cta-banner">
+        <h2>Ready to Test the Agent?</h2>
+        <p>Launch PR-900 in the console and test the full multi-hop investigation.</p>
+        <a href="/console#PR-900" class="btn-primary cta-btn">Open Live Console (PR-900) →</a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-container footer-container">
+      <div class="footer-brand-col">
+        <p class="brand">BlastGate</p>
+        <p class="footer-desc">Graph-powered engineering investigation agent built for GraphHacks / FalkorDB Track 01.</p>
+        <p class="footer-repo"><a href="https://github.com/ThatKJ/blastgate-graphhacks-2026" target="_blank" rel="noopener">github.com/ThatKJ/blastgate-graphhacks-2026 ↗</a></p>
+      </div>
+      <div class="footer-links-col">
+        <h4>Navigation</h4>
+        <ul>
+          <li><a href="/">Overview</a></li>
+          <li><a href="/how-it-works">How It Works</a></li>
+          <li><a href="/architecture">Architecture</a></li>
+          <li><a href="/demo-guide">Demo Guide</a></li>
+        </ul>
+      </div>
+      <div class="footer-links-col">
+        <h4>Live Demo</h4>
+        <ul>
+          <li><a href="/console#PR-900">PR-900 Flagship</a></li>
+          <li><a href="/console#codegraph">Code-Graph Report</a></li>
+          <li><a href="/console#tour">Guided Tour</a></li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="site.js"></script>
+</body>
+</html>

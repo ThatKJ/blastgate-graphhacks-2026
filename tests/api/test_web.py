@@ -36,6 +36,20 @@ def test_api_routes_win_over_static_and_docs_keep_working(client):
     assert client.get("/nope.js").status_code == 404
 
 
+def test_product_pages_served_with_clean_urls_and_csp(client):
+    for path, expected_text in [
+        ("/console", "Investigation Console"),
+        ("/how-it-works", "7-Stage"),
+        ("/architecture", "Architecture"),
+        ("/demo-guide", "Judge Walkthrough"),
+    ]:
+        res = client.get(path)
+        assert res.status_code == 200, f"Route {path} failed: {res.status_code}"
+        assert expected_text in res.text, f"Route {path} missing expected text: {expected_text}"
+        csp = res.headers.get("content-security-policy", "")
+        assert "script-src 'self'" in csp and "frame-ancestors 'none'" in csp
+
+
 def test_no_secrets_in_served_files(monkeypatch):
     monkeypatch.setenv("GROQ_API_KEY", "gsk_must_never_appear")
     c = TestClient(create_app(), raise_server_exceptions=False)

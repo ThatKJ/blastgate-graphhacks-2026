@@ -94,6 +94,11 @@ async function loadScenarios() {
   renderStart();
   const hash = (window.location.hash || "").slice(1);
   if (hash === "codegraph") openCodegraph();
+  else if (hash === "tour") {
+    const flagshipPr = (r.data.find((s) => s.code_change) || r.data[0])?.pr_id;
+    if (flagshipPr) select(flagshipPr);
+    startTour(0);
+  }
   else if (hash && r.data.some((s) => s.pr_id === hash)) select(hash);
 }
 
@@ -374,11 +379,143 @@ function showError(targetId, err, retry, label, prefix = "") {
   }
 }
 
+// --- Judge-Friendly Guided Tour ----------------------------------------------------------------
+const TOUR_STEPS = [
+  {
+    target: "change",
+    title: "Step 1: Real Code Change (PR-900)",
+    text: "Here is the real Git diff in contracts/pricing.py: PriceQuote.discount_tier changes from string to dict. A single-line change, but what could break across downstream microservices?",
+  },
+  {
+    target: "origin",
+    altTarget: "codegraph",
+    title: "Step 2: Gristle AST Code Graph",
+    text: "Gristle indexes Python AST structures into FalkorDB, discovering 6 dependent functions and 2 API routes connected to PriceQuote. Code-level relationships are clearly distinguished from runtime service calls.",
+  },
+  {
+    target: "loop",
+    title: "Step 3: Validated Contract Mapping",
+    text: "blastgate.map.json validates that the code-side symbol PriceQuote.discount_tier maps directly to pricing-api-v2.discount_tier emitted by the pricing-engine service.",
+  },
+  {
+    target: "run-agent",
+    altTarget: "agent",
+    title: "Step 4: FalkorDB Multi-Hop & MCP Investigation",
+    text: "When you click 'Investigate with agent', the agent calls 5 allowlisted Model Context Protocol (MCP) tools: inspecting schema coverage, traversing downstream graph blast radius, computing betweenness centrality, and pulling past incidents.",
+  },
+  {
+    target: "result",
+    title: "Step 5: Deterministic BLOCK Verdict",
+    text: "The deterministic policy engine returns BLOCK: checkout-api consumes this field with NO fallback enabled, cascading to critical order-orchestrator ($43,000 assumed SLA downtime penalty).",
+  },
+  {
+    target: "simulation",
+    title: "Step 6: Counterfactual Simulation (GRAPH.COPY)",
+    text: "Run a what-if experiment: what if checkout-api adds a fallback? BlastGate creates an isolated temporary copy of the graph (GRAPH.COPY). The simulated verdict shifts to CLEAR, while production state remains strictly untouched.",
+  },
+  {
+    target: "inspector-stage",
+    altTarget: "result",
+    title: "Step 7: Traceable Evidence & Reviewers",
+    text: "Every conclusion links to verified Cypher evidence: betweenness centrality (4.0 highest on order-orchestrator), outage INC-2041, and suggested reviewers (eng-alpha, eng-bravo).",
+  },
+];
+
+let tourIndex = 0;
+
+function startTour(step = 0) {
+  const guide = $("tour-guide");
+  if (!guide) return;
+  tourIndex = Math.max(0, Math.min(step, TOUR_STEPS.length - 1));
+  guide.hidden = false;
+  renderTourStep();
+}
+
+function closeTour() {
+  const guide = $("tour-guide");
+  if (!guide) return;
+  guide.hidden = true;
+  document.querySelectorAll(".tour-highlight").forEach((el) => el.classList.remove("tour-highlight"));
+}
+
+function renderTourStep() {
+  const step = TOUR_STEPS[tourIndex];
+  if (!step) return closeTour();
+  const badge = $("tour-step-badge");
+  if (badge) badge.textContent = `Step ${tourIndex + 1} of ${TOUR_STEPS.length}`;
+  const title = $("tour-title");
+  if (title) title.textContent = step.title;
+  const text = $("tour-text");
+  if (text) text.textContent = step.text;
+  const prevBtn = $("tour-prev");
+  if (prevBtn) prevBtn.disabled = tourIndex === 0;
+  const nextBtn = $("tour-next");
+  if (nextBtn) nextBtn.textContent = tourIndex === TOUR_STEPS.length - 1 ? "Finish Tour ✓" : "Next Step →";
+
+  document.querySelectorAll(".tour-highlight").forEach((el) => el.classList.remove("tour-highlight"));
+  const el = $(step.target) || $(step.altTarget);
+  if (el) {
+    el.classList.add("tour-highlight");
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+}
+
+function nextTourStep() {
+  if (tourIndex >= TOUR_STEPS.length - 1) {
+    closeTour();
+  } else {
+    tourIndex += 1;
+    renderTourStep();
+  }
+}
+
+function prevTourStep() {
+  if (tourIndex > 0) {
+    tourIndex -= 1;
+    renderTourStep();
+  }
+}
+
+function bindTourControls() {
+  const btnStart = $("btn-start-tour");
+  if (btnStart) btnStart.onclick = () => {
+    if (!state.current) {
+      const flagshipPr = (state.scenarios.find((s) => s.code_change) || state.scenarios[0])?.pr_id;
+      if (flagshipPr) select(flagshipPr);
+    }
+    startTour(0);
+  };
+  const btnClose = $("tour-close");
+  if (btnClose) btnClose.onclick = closeTour;
+  const btnPrev = $("tour-prev");
+  if (btnPrev) btnPrev.onclick = prevTourStep;
+  const btnNext = $("tour-next");
+  if (btnNext) btnNext.onclick = nextTourStep;
+  const backdrop = $("tour-backdrop");
+  if (backdrop) backdrop.onclick = closeTour;
+
+  window.addEventListener("keydown", (e) => {
+    const guide = $("tour-guide");
+    if (!guide || guide.hidden) return;
+    if (e.key === "Escape") closeTour();
+    else if (e.key === "ArrowRight") nextTourStep();
+    else if (e.key === "ArrowLeft") prevTourStep();
+  });
+}
+
 loadHealth();
 loadScenarios();
+bindTourControls();
 
 window.addEventListener("hashchange", () => {
   const hash = (window.location.hash || "").slice(1);
   if (hash === "codegraph") openCodegraph();
+  else if (hash === "tour") {
+    if (!state.current) {
+      const flagshipPr = (state.scenarios.find((s) => s.code_change) || state.scenarios[0])?.pr_id;
+      if (flagshipPr) select(flagshipPr);
+    }
+    startTour(0);
+  }
   else if (hash && state.scenarios.some((s) => s.pr_id === hash)) select(hash);
 });

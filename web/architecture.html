@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Architecture &amp; Trust — BlastGate Technical Specification</title>
+  <meta name="description" content="Technical architecture, FalkorDB multi-hop graph queries, allowlisted MCP server, deterministic verdict engine, and Track 01 rubric compliance matrix for BlastGate.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23080a0f'/%3E%3Cpath d='M3 3l10 10M13 3l-10 10' stroke='%2338bdf8' stroke-width='2.2' stroke-linecap='round'/%3E%3Ccircle cx='8' cy='8' r='2.5' fill='%238b5cf6'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..100,400..800&family=JetBrains+Mono:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="site-body">
+  <header class="site-header">
+    <div class="site-nav-container">
+      <a href="/" class="brand-link" aria-label="BlastGate Home">
+        <span class="brand">BlastGate</span>
+        <span class="brand-sub">Graph Intelligence</span>
+      </a>
+
+      <nav class="site-nav" id="site-nav" aria-label="Main Navigation">
+        <a href="/" class="site-nav-link">Overview</a>
+        <a href="/how-it-works" class="site-nav-link">How It Works</a>
+        <a href="/architecture" class="site-nav-link active" aria-current="page">Architecture</a>
+        <a href="/demo-guide" class="site-nav-link">Demo Guide</a>
+        <a href="https://github.com/ThatKJ/blastgate-graphhacks-2026" class="site-nav-link" target="_blank" rel="noopener">GitHub ↗</a>
+      </nav>
+
+      <div class="site-header-actions">
+        <a href="/console#PR-900" class="btn-primary cta-btn">Explore Live Demo →</a>
+        <button type="button" class="mobile-toggle" id="mobile-toggle" aria-label="Toggle Navigation Menu">☰</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-content">
+    <div class="site-container">
+      <div class="page-header">
+        <div class="hero-badge">
+          <span class="badge-dot"></span>
+          <span>System Design · Track 01 Rubric Compliance</span>
+        </div>
+        <h1 class="page-title">Architecture, Systems &amp; Trust</h1>
+        <p class="page-lead">
+          BlastGate is engineered as a production-grade systems intelligence console. Explore the complete technical stack, security boundaries, FalkorDB Cypher traversal mechanics, and honest disclosures.
+        </p>
+      </div>
+
+      <!-- Architecture Block Diagram -->
+      <section class="arch-section">
+        <h2 class="arch-heading">System Component Map</h2>
+        <div class="arch-grid">
+          <div class="arch-card">
+            <div class="arch-tag">Frontend &amp; Delivery</div>
+            <h3>Vanilla Console &amp; Strict CSP</h3>
+            <p>Built with zero heavyweight dependencies (HTML5, Vanilla CSS, ES Modules). Enforces a strict Content Security Policy (no inline scripts, no untrusted origins, clickjacking protection).</p>
+            <div class="arch-files">Files: <code>web/app.js</code>, <code>web/view.js</code>, <code>web/styles.css</code></div>
+          </div>
+
+          <div class="arch-card">
+            <div class="arch-tag">API Gateway</div>
+            <h3>FastAPI Core Engine</h3>
+            <p>Serves deterministic endpoints (<code>/api/analyze</code>, <code>/api/simulate</code>) and the investigation runner (<code>/api/agent/investigate</code>). Implements sliding-window rate limiters and auth guards.</p>
+            <div class="arch-files">Files: <code>blastgate/api.py</code></div>
+          </div>
+
+          <div class="arch-card">
+            <div class="arch-tag">Code Graph Subprocess</div>
+            <h3>Gristle AST Extractor</h3>
+            <p>Executes inside an isolated environment (<code>.gristle-venv</code>). Parses repository AST, maps symbols to schemas, and generates tamper-resistant review reports.</p>
+            <div class="arch-files">Files: <code>blastgate/codegraph.py</code>, <code>scripts/setup_gristle.sh</code></div>
+          </div>
+
+          <div class="arch-card">
+            <div class="arch-tag">Connected Graph Engine</div>
+            <h3>FalkorDB Graph Database</h3>
+            <p>High-throughput graph database running on Redis protocol. Stores service nodes, <code>CONSUMES_FIELD</code> contracts, <code>DEPENDS_ON</code> topologies, SLAs, and historical incidents.</p>
+            <div class="arch-files">Files: <code>blastgate/graph.py</code>, Cypher multi-hop traversals</div>
+          </div>
+
+          <div class="arch-card">
+            <div class="arch-tag">Tool Interface</div>
+            <h3>Allowlisted MCP Server</h3>
+            <p>Implements the Model Context Protocol (MCP) specification over stdio. Exposes 5 allowlisted tools with schema validation, PR pinning, and duplicate execution guards.</p>
+            <div class="arch-files">Files: <code>blastgate/mcp_server.py</code>, <code>blastgate/tools.py</code></div>
+          </div>
+
+          <div class="arch-card">
+            <div class="arch-tag">Authoritative Policy</div>
+            <h3>Deterministic Verdict Engine</h3>
+            <p>Evaluates multi-hop topology, consumer fallbacks, critical service exposures, and incident recurrence. Decisions are 100% reproducible and immune to LLM hallucination.</p>
+            <div class="arch-files">Files: <code>blastgate/verdict.py</code>, <code>blastgate/analysis.py</code></div>
+          </div>
+
+          <div class="arch-card">
+            <div class="arch-tag">What-If Branching</div>
+            <h3>GRAPH.COPY Sandbox</h3>
+            <p>Duplicates active graph state into a temporary copy in FalkorDB. Simulates hypothetical consumer fallback mitigations without polluting the production graph.</p>
+            <div class="arch-files">Files: <code>blastgate/simulation.py</code></div>
+          </div>
+
+          <div class="arch-card">
+            <div class="arch-tag">Temporal Memory</div>
+            <h3>Investigation Memory Graph</h3>
+            <p>Stores prior investigation verdicts and AST review hashes in a dedicated graph. Revalidates historical claims against active graph topology upon recall.</p>
+            <div class="arch-files">Files: <code>blastgate/memory.py</code></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Track 01 Rubric Compliance Matrix -->
+      <section class="arch-section">
+        <h2 class="arch-heading">Track 01 Rubric Compliance Matrix</h2>
+        <div class="rubric-table-wrap">
+          <table class="rubric-table">
+            <thead>
+              <tr>
+                <th>Criterion</th>
+                <th>Implementation in Codebase</th>
+                <th>Verification Test</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>1. Multi-hop reasoning</strong></td>
+                <td>
+                  Traverses transitive consumer paths from <code>pricing-engine</code> to <code>checkout-api</code> (hop 1) to <code>order-orchestrator</code> (hop 2) and downstream services (hop 3).
+                </td>
+                <td><code>tests/integration/test_falkordb.py</code><br><code>test_codegraph_agent_loop.py</code></td>
+              </tr>
+              <tr>
+                <td><strong>2. Graph algorithms as tools</strong></td>
+                <td>
+                  Cypher BFS blast radius traversal; sampled betweenness centrality calculation identifying <code>order-orchestrator</code> with centrality score 4.0.
+                </td>
+                <td><code>tests/unit/test_analysis_unit.py</code><br><code>test_mcp_server.py</code></td>
+              </tr>
+              <tr>
+                <td><strong>3. Tool selection via MCP</strong></td>
+                <td>
+                  Agent orchestrates 5 allowlisted MCP tools via discovered JSON schemas, passing arguments dynamically based on investigation state.
+                </td>
+                <td><code>tests/agent/test_orchestrator_unit.py</code><br><code>tests/mcp/test_mcp_server.py</code></td>
+              </tr>
+              <tr>
+                <td><strong>4. Actions based on graph data</strong></td>
+                <td>
+                  Absence of fallback on <code>checkout-api</code> triggers deeper dependency trace; high centrality triggers incident retrieval (<code>INC-2041</code>) and reviewer assignment.
+                </td>
+                <td><code>tests/unit/test_verdict.py</code><br><code>tests/agent/test_agent_live.py</code></td>
+              </tr>
+              <tr>
+                <td><strong>5. Explainable results</strong></td>
+                <td>
+                  Every claim is backed by specific Cypher node identifiers, verified SLA penalties ($43k assumed exposure), and isolated counterfactual validation.
+                </td>
+                <td><code>web/tests/view.test.mjs</code><br><code>tests/unit/test_simulation_unit.py</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Trust, Safeguards & Limitations -->
+      <section class="arch-section trust-section">
+        <h2 class="arch-heading">Trust, Transparency &amp; Rigor</h2>
+        <div class="trust-grid">
+          <div class="trust-card">
+            <h3>Synthetic Demonstration Data</h3>
+            <p>
+              To ensure reproducible judging without exposing proprietary corporate infrastructure, services (e.g. <code>checkout-api</code>), incidents (<code>INC-2041</code>), SLAs, and engineers (<code>eng-alpha</code>) are synthetic demo parameters. The $43,000 figure is an assumed exposure calculation (sum of synthetic hourly penalty rates × assumed outage duration), not historical accounting.
+            </p>
+          </div>
+
+          <div class="trust-card">
+            <h3>Type-Level vs. Runtime Link Limits</h3>
+            <p>
+              Gristle indexes Python AST structural references (functions and routes connected to classes). BlastGate explicitly states that a type-level reference does <em>not</em> prove that a given function executes that field at runtime.
+            </p>
+          </div>
+
+          <div class="trust-card">
+            <h3>Deterministic Engine Authority</h3>
+            <p>
+              The agent planner gathers facts and generates natural-language explanations, but the <strong>verdict is computed strictly by deterministic rules</strong>. An LLM cannot override a BLOCK or weaken an SLA violation.
+            </p>
+          </div>
+
+          <div class="trust-card">
+            <h3>Offline Planner Integrity</h3>
+            <p>
+              The verified offline demo runs with <code>AGENT_PROVIDER=deterministic</code>. The console truthfully displays this badge and does not claim that a live model autonomously selected the tool calls during the offline run.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- CTA -->
+      <div class="page-cta-banner">
+        <h2>Inspect the Codebase on GitHub</h2>
+        <p>Review the full implementation, Cypher queries, and test suites.</p>
+        <div class="cta-buttons">
+          <a href="https://github.com/ThatKJ/blastgate-graphhacks-2026" class="btn-primary cta-btn" target="_blank" rel="noopener">Browse GitHub Repository ↗</a>
+          <a href="/console#PR-900" class="btn-secondary cta-btn">Launch Live Console →</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-container footer-container">
+      <div class="footer-brand-col">
+        <p class="brand">BlastGate</p>
+        <p class="footer-desc">Graph-powered engineering investigation agent built for GraphHacks / FalkorDB Track 01.</p>
+        <p class="footer-repo"><a href="https://github.com/ThatKJ/blastgate-graphhacks-2026" target="_blank" rel="noopener">github.com/ThatKJ/blastgate-graphhacks-2026 ↗</a></p>
+      </div>
+      <div class="footer-links-col">
+        <h4>Navigation</h4>
+        <ul>
+          <li><a href="/">Overview</a></li>
+          <li><a href="/how-it-works">How It Works</a></li>
+          <li><a href="/architecture">Architecture</a></li>
+          <li><a href="/demo-guide">Demo Guide</a></li>
+        </ul>
+      </div>
+      <div class="footer-links-col">
+        <h4>Live Demo</h4>
+        <ul>
+          <li><a href="/console#PR-900">PR-900 Flagship</a></li>
+          <li><a href="/console#codegraph">Code-Graph Report</a></li>
+          <li><a href="/console#tour">Guided Tour</a></li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="site.js"></script>
+</body>
+</html>

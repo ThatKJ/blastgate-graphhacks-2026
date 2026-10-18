@@ -16,7 +16,7 @@ from typing import Any
 
 import redis
 from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -510,7 +510,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise invalid
         return data
 
-    if WEB_DIR.is_dir():   # the console; mounted last so API routes always win
+    if WEB_DIR.is_dir():   # the product website and console; mounted last so API routes always win
+        @app.api_route("/console", methods=["GET", "HEAD"], include_in_schema=False)
+        def console_page():
+            target = WEB_DIR / "console.html"
+            return FileResponse(target if target.is_file() else WEB_DIR / "index.html")
+
+        @app.api_route("/how-it-works", methods=["GET", "HEAD"], include_in_schema=False)
+        def how_it_works_page():
+            return FileResponse(WEB_DIR / "how-it-works.html")
+
+        @app.api_route("/architecture", methods=["GET", "HEAD"], include_in_schema=False)
+        def architecture_page():
+            return FileResponse(WEB_DIR / "architecture.html")
+
+        @app.api_route("/demo-guide", methods=["GET", "HEAD"], include_in_schema=False)
+        def demo_guide_page():
+            return FileResponse(WEB_DIR / "demo-guide.html")
+
         app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")
     return app
 

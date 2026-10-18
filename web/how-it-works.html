@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How It Works — BlastGate 7-Stage Investigation</title>
+  <meta name="description" content="Detailed step-by-step technical lifecycle of BlastGate: Git diff → Gristle AST → Validated Mapping → FalkorDB Service Graph → MCP Investigation → Deterministic BLOCK → Counterfactual Simulation.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23080a0f'/%3E%3Cpath d='M3 3l10 10M13 3l-10 10' stroke='%2338bdf8' stroke-width='2.2' stroke-linecap='round'/%3E%3Ccircle cx='8' cy='8' r='2.5' fill='%238b5cf6'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..100,400..800&family=JetBrains+Mono:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="site-body">
+  <header class="site-header">
+    <div class="site-nav-container">
+      <a href="/" class="brand-link" aria-label="BlastGate Home">
+        <span class="brand">BlastGate</span>
+        <span class="brand-sub">Graph Intelligence</span>
+      </a>
+
+      <nav class="site-nav" id="site-nav" aria-label="Main Navigation">
+        <a href="/" class="site-nav-link">Overview</a>
+        <a href="/how-it-works" class="site-nav-link active" aria-current="page">How It Works</a>
+        <a href="/architecture" class="site-nav-link">Architecture</a>
+        <a href="/demo-guide" class="site-nav-link">Demo Guide</a>
+        <a href="https://github.com/ThatKJ/blastgate-graphhacks-2026" class="site-nav-link" target="_blank" rel="noopener">GitHub ↗</a>
+      </nav>
+
+      <div class="site-header-actions">
+        <a href="/console#PR-900" class="btn-primary cta-btn">Explore Live Demo →</a>
+        <button type="button" class="mobile-toggle" id="mobile-toggle" aria-label="Toggle Navigation Menu">☰</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-content">
+    <div class="site-container">
+      <div class="page-header">
+        <div class="hero-badge">
+          <span class="badge-dot"></span>
+          <span>Technical Deep Dive · Pipeline Specification</span>
+        </div>
+        <h1 class="page-title">The 7-Stage Graph Investigation Lifecycle</h1>
+        <p class="page-lead">
+          BlastGate replaces intuition with a deterministic, evidence-backed pipeline. Here is how a real Git change traverses the code graph and FalkorDB service graph to yield a defensible engineering decision.
+        </p>
+      </div>
+
+      <!-- Interactive Flow Schematic -->
+      <div class="pipeline-flow-wrap">
+        <div class="pipeline-flow">
+          <div class="pipeline-step">
+            <div class="step-num">01</div>
+            <div class="step-label">Git Diff</div>
+          </div>
+          <div class="pipeline-arrow">→</div>
+          <div class="pipeline-step">
+            <div class="step-num">02</div>
+            <div class="step-label">Gristle AST</div>
+          </div>
+          <div class="pipeline-arrow">→</div>
+          <div class="pipeline-step">
+            <div class="step-num">03</div>
+            <div class="step-label">Validated Map</div>
+          </div>
+          <div class="pipeline-arrow">→</div>
+          <div class="pipeline-step">
+            <div class="step-num">04</div>
+            <div class="step-label">FalkorDB Graph</div>
+          </div>
+          <div class="pipeline-arrow">→</div>
+          <div class="pipeline-step">
+            <div class="step-num">05</div>
+            <div class="step-label">5 MCP Tools</div>
+          </div>
+          <div class="pipeline-arrow">→</div>
+          <div class="pipeline-step">
+            <div class="step-num">06</div>
+            <div class="step-label">BLOCK Verdict</div>
+          </div>
+          <div class="pipeline-arrow">→</div>
+          <div class="pipeline-step">
+            <div class="step-num">07</div>
+            <div class="step-label">Counterfactual</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step-by-Step Breakdown -->
+      <div class="stages-breakdown">
+        <!-- Stage 1 -->
+        <article class="stage-article">
+          <div class="stage-sidebar">
+            <span class="stage-badge">Stage 01</span>
+            <span class="stage-component">Git Integration</span>
+          </div>
+          <div class="stage-body">
+            <h2>Detect the Real Source Code Change</h2>
+            <p>
+              In our flagship demonstration PR-900, a developer changes a contract field type in <code>contracts/pricing.py</code>:
+            </p>
+            <pre class="code-block"><code>@@ class PriceQuote:
+-    discount_tier: str
++    discount_tier: dict</code></pre>
+            <p>
+              BlastGate extracts the real unified git diff between the target branch and working tree, isolating changed symbols and field-level alterations.
+            </p>
+            <div class="stage-evidence">
+              <strong>Evidence produced:</strong> Symbol: <code>contracts/pricing.py::PriceQuote</code>, Field: <code>discount_tier</code>, Change Type: <code>type_changed (str → dict)</code>.
+            </div>
+          </div>
+        </article>
+
+        <!-- Stage 2 -->
+        <article class="stage-article">
+          <div class="stage-sidebar">
+            <span class="stage-badge">Stage 02</span>
+            <span class="stage-component">Gristle Subprocess</span>
+          </div>
+          <div class="stage-body">
+            <h2>Index the AST into FalkorDB Code Graph</h2>
+            <p>
+              BlastGate executes Gristle inside an isolated virtual environment (<code>.gristle-venv</code>). Gristle parses the full repository AST and populates an in-memory code graph in FalkorDB with nodes representing classes, functions, and endpoints.
+            </p>
+            <p>
+              Gristle indexes structural relationships: 6 dependent functions and 2 API routes that reference <code>PriceQuote</code>.
+            </p>
+            <div class="stage-note">
+              <strong>Rigor Guard:</strong> BlastGate explicitly enforces that class-level or function-level AST links do <em>not</em> prove that a given function accesses the specific changed field at runtime.
+            </div>
+          </div>
+        </article>
+
+        <!-- Stage 3 -->
+        <article class="stage-article">
+          <div class="stage-sidebar">
+            <span class="stage-badge">Stage 03</span>
+            <span class="stage-component">Contract Registry</span>
+          </div>
+          <div class="stage-body">
+            <h2>Validate Contract Mapping to Service Graph</h2>
+            <p>
+              Before traversing the service graph, code-level changes must be validated against published contract schemas in <code>blastgate.map.json</code>.
+            </p>
+            <p>
+              BlastGate verifies that <code>PriceQuote.discount_tier</code> is the authoritative implementation for the schema field <code>pricing-api-v2.discount_tier</code> emitted by the service <code>pricing-engine</code>.
+            </p>
+            <div class="stage-evidence">
+              <strong>Mapping Status:</strong> <code>validated</code> (Ambiguous or unmapped changes are flagged with explicit UNCERTAIN warnings rather than false CLEARs).
+            </div>
+          </div>
+        </article>
+
+        <!-- Stage 4 -->
+        <article class="stage-article">
+          <div class="stage-sidebar">
+            <span class="stage-badge">Stage 04</span>
+            <span class="stage-component">FalkorDB Cypher</span>
+          </div>
+          <div class="stage-body">
+            <h2>Query Connected Multi-Hop Blast Radius</h2>
+            <p>
+              Once mapped, FalkorDB executes multi-hop Cypher queries along <code>CONSUMES_FIELD</code> and <code>DEPENDS_ON</code> relationships:
+            </p>
+            <pre class="code-block"><code>MATCH (s:Service)-[:CONSUMES_FIELD]->(f:SchemaField {field: $field})
+OPTIONAL MATCH path = (downstream:Service)-[:DEPENDS_ON*1..4]->(s)
+RETURN s, path</code></pre>
+            <p>
+              The query discovers that <code>checkout-api</code> is a direct consumer (hop 1), which feeds <code>order-orchestrator</code> (hop 2) and <code>storefront-bff</code> (hop 2), cascading further to <code>invoice-worker</code> and <code>partner-gateway</code> (hop 3).
+            </p>
+          </div>
+        </article>
+
+        <!-- Stage 5 -->
+        <article class="stage-article">
+          <div class="stage-sidebar">
+            <span class="stage-badge">Stage 05</span>
+            <span class="stage-component">MCP Tool Pipeline</span>
+          </div>
+          <div class="stage-body">
+            <h2>Investigate via 5 Allowlisted MCP Tools</h2>
+            <p>
+              The agent orchestrator triggers five distinct Model Context Protocol tools, each answering a specific question with schema-validated arguments:
+            </p>
+            <ol class="stage-steps-list">
+              <li><code>inspect_change</code>: Validates schema type and producer properties.</li>
+              <li><code>inspect_contract_coverage</code>: Checks consumer fallback readiness. Discovers <code>checkout-api</code> has <strong>fallback_enabled = false</strong>.</li>
+              <li><code>trace_blast_radius</code>: Traverses all transitive downstream services, identifying 5 affected systems and 3 at-risk SLAs.</li>
+              <li><code>analyze_network_criticality</code>: Computes sampled betweenness centrality, highlighting <code>order-orchestrator</code> with a critical score of <strong>4.0 (highest in topology)</strong>.</li>
+              <li><code>retrieve_incidents_and_reviewers</code>: Queries graph history for outage <code>INC-2041</code> and assigns responsible engineers <code>eng-alpha</code> and <code>eng-bravo</code>.</li>
+            </ol>
+            <div class="stage-note">
+              <strong>Offline Demo Integrity:</strong> The offline demonstration uses a deterministic planner following tool-result <code>next_actions</code>. It does not fabricate autonomous live-LLM tool decisions.
+            </div>
+          </div>
+        </article>
+
+        <!-- Stage 6 -->
+        <article class="stage-article">
+          <div class="stage-sidebar">
+            <span class="stage-badge">Stage 06</span>
+            <span class="stage-component">Verdict Engine</span>
+          </div>
+          <div class="stage-body">
+            <h2>Deterministic Verdict: BLOCK</h2>
+            <p>
+              BlastGate's deterministic verdict policy evaluates the verified Cypher evidence:
+            </p>
+            <ul class="verdict-points">
+              <li><strong>Critical Failure:</strong> A breaking type change reaches consumer <code>checkout-api</code> without fallback handling.</li>
+              <li><strong>SLA Impact:</strong> Cascades to critical services <code>checkout-api</code> and <code>order-orchestrator</code>, generating an assumed <strong>$43,000 SLA penalty</strong> across <code>SLA-CHECKOUT-99.95</code> and <code>SLA-ORDERS-99.9</code>.</li>
+              <li><strong>Incident Risk:</strong> Re-exposes the root cause of past outage <code>INC-2041</code>.</li>
+            </ul>
+            <p>
+              The rule engine outputs an authoritative <strong>BLOCK</strong>. Agent commentary can explain the verdict, but cannot weaken or override it.
+            </p>
+          </div>
+        </article>
+
+        <!-- Stage 7 -->
+        <article class="stage-article">
+          <div class="stage-sidebar">
+            <span class="stage-badge">Stage 07</span>
+            <span class="stage-component">GRAPH.COPY Engine</span>
+          </div>
+          <div class="stage-body">
+            <h2>Hypothetical Counterfactual Simulation</h2>
+            <p>
+              The developer asks: <em>"What if checkout-api implements a backward-compatible fallback?"</em>
+            </p>
+            <p>
+              BlastGate copies the active graph into a temporary isolated graph (<code>GRAPH.COPY</code>) in FalkorDB. On the copy, it sets <code>checkout-api.fallback_enabled = true</code> and re-executes the verdict engine.
+            </p>
+            <p>
+              The simulated outcome becomes <strong>CLEAR</strong>. BlastGate renders a visual topology diff, while keeping the production graph and authoritative BLOCK decision strictly unchanged and explicitly marked <em>UNVERIFIED</em>.
+            </p>
+          </div>
+        </article>
+      </div>
+
+      <!-- Bottom CTA Banner -->
+      <div class="page-cta-banner">
+        <h2>Experience the 7-Stage Pipeline in Real Time</h2>
+        <p>Run PR-900 through the live console and observe each stage execute.</p>
+        <a href="/console#PR-900" class="btn-primary cta-btn">Launch Live Investigation Console →</a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-container footer-container">
+      <div class="footer-brand-col">
+        <p class="brand">BlastGate</p>
+        <p class="footer-desc">Graph-powered engineering investigation agent built for GraphHacks / FalkorDB Track 01.</p>
+        <p class="footer-repo"><a href="https://github.com/ThatKJ/blastgate-graphhacks-2026" target="_blank" rel="noopener">github.com/ThatKJ/blastgate-graphhacks-2026 ↗</a></p>
+      </div>
+      <div class="footer-links-col">
+        <h4>Navigation</h4>
+        <ul>
+          <li><a href="/">Overview</a></li>
+          <li><a href="/how-it-works">How It Works</a></li>
+          <li><a href="/architecture">Architecture</a></li>
+          <li><a href="/demo-guide">Demo Guide</a></li>
+        </ul>
+      </div>
+      <div class="footer-links-col">
+        <h4>Live Demo</h4>
+        <ul>
+          <li><a href="/console#PR-900">PR-900 Flagship</a></li>
+          <li><a href="/console#codegraph">Code-Graph Report</a></li>
+          <li><a href="/console#tour">Guided Tour</a></li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="site.js"></script>
+</body>
+</html>

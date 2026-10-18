@@ -3,45 +3,396 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BlastGate — Graph-Powered Engineering Investigation Agent</title>
-  <meta name="description" content="BlastGate: Graph-powered change-impact analysis with FalkorDB and Gristle code graphs.">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%230a0d14'/%3E%3Cpath d='M3 3l10 10M13 3l-10 10' stroke='%2338bdf8' stroke-width='2.2' stroke-linecap='round'/%3E%3Ccircle cx='8' cy='8' r='2.5' fill='%23f43f5e'/%3E%3C/svg%3E">
+  <title>BlastGate — Know what breaks before you merge</title>
+  <meta name="description" content="What could break if I merge this change? BlastGate connects code changes to FalkorDB service graphs, explores blast radiuses through MCP tools, and issues explainable verdicts.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23080a0f'/%3E%3Cpath d='M3 3l10 10M13 3l-10 10' stroke='%2338bdf8' stroke-width='2.2' stroke-linecap='round'/%3E%3Ccircle cx='8' cy='8' r='2.5' fill='%238b5cf6'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..100,400..800&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..100,400..800&family=JetBrains+Mono:wght@400;500;700&display=swap">
   <link rel="stylesheet" href="styles.css">
-  <script type="module" src="app.js"></script>
 </head>
-<body>
-  <header class="top">
-    <p class="brand">BlastGate</p>
-    <h1>What could break if I merge this change?</h1>
-    <div class="health" id="health" aria-live="polite">Checking the backend…</div>
-    <p class="current" id="current" aria-live="polite"></p>
+<body class="site-body">
+  <!-- Top Navigation Header -->
+  <header class="site-header">
+    <div class="site-nav-container">
+      <a href="/" class="brand-link" aria-label="BlastGate Home">
+        <span class="brand">BlastGate</span>
+        <span class="brand-sub">Graph Intelligence</span>
+      </a>
+
+      <nav class="site-nav" id="site-nav" aria-label="Main Navigation">
+        <a href="#features" class="site-nav-link">Product</a>
+        <a href="/how-it-works" class="site-nav-link">How It Works</a>
+        <a href="/architecture" class="site-nav-link">Architecture</a>
+        <a href="/demo-guide" class="site-nav-link">Demo Guide</a>
+        <a href="https://github.com/ThatKJ/blastgate-graphhacks-2026" class="site-nav-link" target="_blank" rel="noopener">GitHub ↗</a>
+      </nav>
+
+      <div class="site-header-actions">
+        <a href="/console#PR-900" class="btn-primary cta-btn">Explore Live Demo →</a>
+        <button type="button" class="mobile-toggle" id="mobile-toggle" aria-label="Toggle Navigation Menu">☰</button>
+      </div>
+    </div>
   </header>
 
-  <div class="layout">
-    <nav class="rail" aria-labelledby="changes-heading">
-      <h2 id="changes-heading">Real code change</h2>
-      <ul class="scenarios" id="flagship"><li class="muted">Loading…</li></ul>
-      <ul class="scenarios"><li><button type="button" id="codegraph">
-        <span class="pr">Code-graph review</span><span class="title">The full git-diff review report</span></button></li></ul>
-      <h2 id="declared-heading" class="rail-sub">Declared scenarios</h2>
-      <p class="rail-note rail-note-tight">Changes declared by hand. The code graph is not used for these.</p>
-      <ul class="scenarios" id="scenarios" aria-labelledby="declared-heading"><li class="muted">Loading changes…</li></ul>
-      <p class="rail-note">Demo data is synthetic: services, engineers, incidents, SLAs and costs are made up.</p>
-    </nav>
+  <main>
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="site-container">
+        <div class="hero-badge">
+          <span class="badge-dot"></span>
+          <span>GraphHacks / FalkorDB · Track 01: Agents That Act on Connected Data</span>
+        </div>
 
-    <main id="main">
-      <section class="change" id="change" aria-live="polite">
-        <p class="empty">Connecting to the BlastGate server…</p>
-      </section>
-      <section class="loop-wrap" id="loop" aria-label="Agent loop"></section>
-      <p class="progress" id="progress" role="status" aria-live="polite"></p>
-      <section id="result" aria-label="Verdict and evidence"></section>
-      <section id="agent" aria-label="Agent investigation"></section>
-      <section id="simulation" aria-label="Counterfactual simulation"></section>
-    </main>
-  </div>
+        <h1 class="hero-title">Know what breaks<br><span class="hero-highlight">before you merge.</span></h1>
+
+        <p class="hero-lead">
+          <strong>What could break if I merge this change?</strong> BlastGate traces code changes through connected FalkorDB service graphs to uncover downstream impact, investigate evidence with allowlisted MCP tools, and recommend defensible pre-merge decisions.
+        </p>
+
+        <div class="hero-actions">
+          <a href="/console#PR-900" class="btn-primary hero-btn-main">
+            <span>Explore the Live Investigation</span>
+            <span class="btn-sub">PR-900: PriceQuote.discount_tier</span>
+          </a>
+          <a href="/how-it-works" class="btn-secondary hero-btn-sub">
+            <span>See How It Works</span>
+            <span class="btn-sub">7-Stage Agent Pipeline →</span>
+          </a>
+        </div>
+
+        <div class="hero-credibility">
+          <span class="cred-item"><span class="cred-dot"></span> Gristle AST Code Graph</span>
+          <span class="cred-item"><span class="cred-dot"></span> FalkorDB Multi-Hop Cypher</span>
+          <span class="cred-item"><span class="cred-dot"></span> 5 Allowlisted MCP Tools</span>
+          <span class="cred-item"><span class="cred-dot"></span> Deterministic BLOCK Policy</span>
+          <span class="cred-item"><span class="cred-dot"></span> Isolated Counterfactuals</span>
+        </div>
+
+        <!-- Hero Product Visualization: Connected Blast Radius Preview -->
+        <div class="hero-preview-wrap">
+          <div class="preview-header">
+            <div class="preview-dots"><span></span><span></span><span></span></div>
+            <div class="preview-title">PR-900 Live Investigation Topology · contracts/pricing.py → FalkorDB Service Graph</div>
+            <a href="/console#PR-900" class="preview-link">Open in Console ↗</a>
+          </div>
+          <div class="preview-body">
+            <div class="graph-flow">
+              <div class="flow-col">
+                <div class="flow-tag">01 · Git Diff</div>
+                <div class="flow-card node-code">
+                  <div class="card-title">PriceQuote.discount_tier</div>
+                  <div class="card-meta">str → dict</div>
+                  <div class="card-file">contracts/pricing.py</div>
+                </div>
+              </div>
+
+              <div class="flow-arrow"><span>→</span><small>AST Index</small></div>
+
+              <div class="flow-col">
+                <div class="flow-tag">02 · Validated Map</div>
+                <div class="flow-card node-mapping">
+                  <div class="card-title">pricing-api-v2</div>
+                  <div class="card-meta">discount_tier</div>
+                  <div class="card-file">blastgate.map.json</div>
+                </div>
+              </div>
+
+              <div class="flow-arrow"><span>→</span><small>Direct Consumer</small></div>
+
+              <div class="flow-col">
+                <div class="flow-tag">03 · Vulnerability</div>
+                <div class="flow-card node-vulnerable">
+                  <div class="card-title">checkout-api</div>
+                  <div class="card-badge badge-block">NO FALLBACK</div>
+                  <div class="card-sla">SLA: $12k/hr risk</div>
+                </div>
+              </div>
+
+              <div class="flow-arrow"><span>→</span><small>Transitive (Hop 2)</small></div>
+
+              <div class="flow-col">
+                <div class="flow-tag">04 · Bottleneck</div>
+                <div class="flow-card node-critical">
+                  <div class="card-title">order-orchestrator</div>
+                  <div class="card-badge badge-warn">Betweenness: 4.0</div>
+                  <div class="card-sla">SLA: $8k/hr risk</div>
+                </div>
+              </div>
+
+              <div class="flow-arrow"><span>→</span><small>Verdict</small></div>
+
+              <div class="flow-col">
+                <div class="flow-tag">05 · Decision</div>
+                <div class="flow-card node-verdict">
+                  <div class="verdict-stamp">BLOCK</div>
+                  <div class="verdict-reason">$43k assumed SLA penalty</div>
+                  <div class="verdict-action">Mitigation: Add fallback</div>
+                </div>
+              </div>
+            </div>
+            <p class="preview-caption">
+              Live multi-hop dependency path discovered in FalkorDB: unhandled consumer <code>checkout-api</code> cascades to critical bottleneck <code>order-orchestrator</code>.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- The Problem Section: Code-Local Blindness -->
+    <section class="section-padded problem-section">
+      <div class="site-container">
+        <div class="section-header">
+          <span class="section-kicker">The Engineering Problem</span>
+          <h2 class="section-title">The Cost of Code-Local Blindness</h2>
+          <p class="section-sub">
+            In microservice architectures, a single field type change looks harmless in a local git diff. But standard CI, linters, and PR reviews cannot see across repository boundaries.
+          </p>
+        </div>
+
+        <div class="comparison-grid">
+          <div class="compare-card compare-bad">
+            <div class="compare-badge">Standard PR Review</div>
+            <h3>What Your Team Sees</h3>
+            <ul class="compare-list">
+              <li><strong>Local File Diff:</strong> <code>discount_tier: str → dict</code> in one isolated file.</li>
+              <li><strong>Passing Tests:</strong> Local unit tests pass because only the producer is checked.</li>
+              <li><strong>Zero Graph Awareness:</strong> Unaware that <code>checkout-api</code> parses this contract as raw text.</li>
+              <li><strong>Hidden Cascade:</strong> Unaware that <code>order-orchestrator</code> depends on <code>checkout-api</code> downstream.</li>
+              <li><strong>Outcome:</strong> Merged to production → Runtime outage → Emergency rollback.</li>
+            </ul>
+          </div>
+
+          <div class="compare-card compare-good">
+            <div class="compare-badge badge-accent">BlastGate Connected Agent</div>
+            <h3>What BlastGate Discovers</h3>
+            <ul class="compare-list">
+              <li><strong>AST Code Graph:</strong> Gristle indexes functions and routes connected to <code>PriceQuote</code>.</li>
+              <li><strong>Validated Mapping:</strong> Maps code symbol to <code>pricing-api-v2.discount_tier</code> via contract rules.</li>
+              <li><strong>Multi-Hop FalkorDB Traversal:</strong> Traverses 3 hops to identify 5 affected downstream services.</li>
+              <li><strong>MCP Tool Investigation:</strong> Detects missing fallback, computes betweenness centrality (4.0), and flags past outage <code>INC-2041</code>.</li>
+              <li><strong>Defensible Decision:</strong> Authoritative <strong>BLOCK</strong> with clear reviewers (<code>eng-alpha</code>, <code>eng-bravo</code>) and $43,000 assumed SLA risk.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- The Solution: Dual-Graph Connected Intelligence -->
+    <section class="section-padded solution-section">
+      <div class="site-container">
+        <div class="section-header">
+          <span class="section-kicker">The Architecture</span>
+          <h2 class="section-title">Connected Dual-Graph Intelligence</h2>
+          <p class="section-sub">
+            BlastGate connects two complementary views of the world: static source code ASTs and dynamic runtime service topologies.
+          </p>
+        </div>
+
+        <div class="dual-graph-grid">
+          <div class="dual-card">
+            <div class="dual-step">Layer 1</div>
+            <h3>Code Graph (AST)</h3>
+            <p>Indexed via Gristle in an isolated environment. Extracts Python AST nodes: classes, methods, endpoints, and symbol references.</p>
+            <div class="dual-meta">Indexed: <code>PriceQuote</code>, 6 functions, 2 routes</div>
+          </div>
+
+          <div class="dual-card dual-highlight">
+            <div class="dual-step">Bridging Layer</div>
+            <h3>Validated Contract Mapping</h3>
+            <p>Strict schema mappings in <code>blastgate.map.json</code> connect code-level symbols to published service endpoints with verified validation statuses.</p>
+            <div class="dual-meta">Status: <code>validated (non-ambiguous)</code></div>
+          </div>
+
+          <div class="dual-card">
+            <div class="dual-step">Layer 2</div>
+            <h3>FalkorDB Service Graph</h3>
+            <p>Cypher queries traverse service dependencies, consumers, SLAs, and historical incidents. Computes graph algorithms like betweenness centrality.</p>
+            <div class="dual-meta">Queries: Multi-hop blast radius, SLA exposure</div>
+          </div>
+
+          <div class="dual-card dual-accent">
+            <div class="dual-step">Layer 3</div>
+            <h3>MCP Agent Investigation</h3>
+            <p>Allowlisted Model Context Protocol tools let the agent investigate blast radius, verify fallback readiness, and gather evidence before deciding.</p>
+            <div class="dual-meta">Tools: 5 schema-validated MCP actions</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Core Features Grid -->
+    <section class="section-padded" id="features">
+      <div class="site-container">
+        <div class="section-header">
+          <span class="section-kicker">Product Capabilities</span>
+          <h2 class="section-title">Built for Engineering Rigor</h2>
+          <p class="section-sub">
+            Every feature is backed by real connected graph queries and deterministic safety gates.
+          </p>
+        </div>
+
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="feature-num">01</div>
+            <h3>Real Git Diff &amp; AST Analysis</h3>
+            <p>Direct integration with Gristle code graphs parses the actual Git change. Clearly distinguishes code-level links from runtime service invocations.</p>
+            <span class="feature-tag">AST Indexing</span>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-num">02</div>
+            <h3>Multi-Hop FalkorDB Traversal</h3>
+            <p>Traces transitive dependency paths up to 3+ hops deep. Discovers that an unhandled consumer cascades to critical downstream systems.</p>
+            <span class="feature-tag">Cypher Traversal</span>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-num">03</div>
+            <h3>5 Allowlisted MCP Tools</h3>
+            <p>Tool execution via Model Context Protocol: <code>inspect_change</code>, <code>inspect_contract_coverage</code>, <code>trace_blast_radius</code>, <code>analyze_network_criticality</code>, and <code>retrieve_incidents_and_reviewers</code>.</p>
+            <span class="feature-tag">MCP Architecture</span>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-num">04</div>
+            <h3>Deterministic Verdict Engine</h3>
+            <p>Policy rules are authoritative and deterministic. The agent gathers evidence, but cannot hallucinate or override a BLOCK, WARN, or CLEAR decision.</p>
+            <span class="feature-tag">Explainable Policy</span>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-num">05</div>
+            <h3>Isolated Counterfactuals</h3>
+            <p>Simulate hypothetical mitigations (such as adding a fallback) on a sandboxed graph clone (<code>GRAPH.COPY</code>). The live decision remains strictly protected.</p>
+            <span class="feature-tag">GRAPH.COPY Sandbox</span>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-num">06</div>
+            <h3>Investigation Memory Graph</h3>
+            <p>Opt-in temporal memory stores prior investigations, revalidating previous conclusions against current graph reality without stale assumptions.</p>
+            <span class="feature-tag">Temporal Memory</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Track 01 Rubric Alignment -->
+    <section class="section-padded rubric-section">
+      <div class="site-container">
+        <div class="section-header">
+          <span class="section-kicker">Track 01 Evaluation</span>
+          <h2 class="section-title">Designed for All Five Judging Criteria</h2>
+          <p class="section-sub">
+            How BlastGate directly demonstrates Track 01: <em>Agents That Act on Connected Data</em>.
+          </p>
+        </div>
+
+        <div class="rubric-table-wrap">
+          <table class="rubric-table">
+            <thead>
+              <tr>
+                <th>Criterion</th>
+                <th>BlastGate Implementation</th>
+                <th>Evidence in Demo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>1. Multi-hop reasoning</strong></td>
+                <td>Traces <code>pricing.py</code> → <code>pricing-engine</code> → <code>checkout-api</code> (hop 1) → <code>order-orchestrator</code> (hop 2) → <code>invoice-worker</code> (hop 3).</td>
+                <td><span class="chip-accent">Interactive SVG Impact Map</span></td>
+              </tr>
+              <tr>
+                <td><strong>2. Graph queries &amp; algorithms</strong></td>
+                <td>Executes Cypher dependency paths, fallback checks, and calculates sampled betweenness centrality scores.</td>
+                <td><span class="chip-accent">Centrality: 4.0 on order-orchestrator</span></td>
+              </tr>
+              <tr>
+                <td><strong>3. Tool selection via MCP</strong></td>
+                <td>Discovers and executes 5 allowlisted MCP tools with strict argument sanitization and duplicate call prevention.</td>
+                <td><span class="chip-accent">Full Tool Timeline &amp; Reasons</span></td>
+              </tr>
+              <tr>
+                <td><strong>4. Actions based on graph data</strong></td>
+                <td>Missing fallback and high centrality trigger incident retrieval (<code>INC-2041</code>) and reviewer suggestions (<code>eng-alpha</code>, <code>eng-bravo</code>).</td>
+                <td><span class="chip-accent">Authoritative BLOCK Verdict</span></td>
+              </tr>
+              <tr>
+                <td><strong>5. Explainable results</strong></td>
+                <td>Every verdict references concrete Cypher node IDs, assumed SLA penalties ($43k), and counterfactual validation.</td>
+                <td><span class="chip-accent">Isolated GRAPH.COPY Simulation</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Call to Action Banner -->
+    <section class="section-padded cta-section">
+      <div class="site-container">
+        <div class="cta-box">
+          <h2 class="cta-title">Follow the graph. Understand the impact. Decide with evidence.</h2>
+          <p class="cta-sub">
+            Launch the interactive investigation console on PR-900 or follow the step-by-step judge walkthrough.
+          </p>
+          <div class="cta-buttons">
+            <a href="/console#PR-900" class="btn-primary cta-btn-main">Launch Live Investigation Console →</a>
+            <a href="/demo-guide" class="btn-secondary cta-btn-sub">Open Demo Guide &amp; Quickstart</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="site-container footer-container">
+      <div class="footer-brand-col">
+        <p class="brand">BlastGate</p>
+        <p class="footer-desc">Graph-powered engineering investigation agent built for GraphHacks / FalkorDB Track 01.</p>
+        <p class="footer-repo">
+          <a href="https://github.com/ThatKJ/blastgate-graphhacks-2026" target="_blank" rel="noopener">github.com/ThatKJ/blastgate-graphhacks-2026 ↗</a>
+        </p>
+      </div>
+
+      <div class="footer-links-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="/console#PR-900">Investigation Console</a></li>
+          <li><a href="/console#codegraph">Code-Graph Review</a></li>
+          <li><a href="/console#tour">Guided Judge Tour</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-links-col">
+        <h4>Documentation</h4>
+        <ul>
+          <li><a href="/how-it-works">How It Works</a></li>
+          <li><a href="/architecture">System Architecture</a></li>
+          <li><a href="/demo-guide">Demo Guide &amp; Setup</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-links-col">
+        <h4>Trust &amp; Transparency</h4>
+        <ul>
+          <li><span>Deterministic Verdict Policy</span></li>
+          <li><span>Gristle AST Isolation</span></li>
+          <li><span>Synthetic Demo Data Disclosure</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="site-container footer-bottom">
+      <p class="footer-copy">
+        BlastGate © 2026 · GraphHacks Track 01 Submission. Demo data (services, incidents, SLAs, engineers) is synthetic for demonstration purposes.
+      </p>
+    </div>
+  </footer>
+
+  <script type="module" src="site.js"></script>
 </body>
 </html>
