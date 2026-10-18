@@ -55,7 +55,11 @@
             <span>Explore the Live Investigation</span>
             <span class="btn-sub">PR-900: PriceQuote.discount_tier</span>
           </a>
-          <a href="/how-it-works" class="btn-secondary hero-btn-sub">
+          <a href="#demo-video" class="btn-secondary hero-btn-sub" data-open-video id="hero-watch-demo">
+            <span>Watch the 3-Minute Demo ▶</span>
+            <span class="btn-sub">Technical Product Film (1:52)</span>
+          </a>
+          <a href="/how-it-works" class="btn-ghost hero-btn-sub">
             <span>See How It Works</span>
             <span class="btn-sub">7-Stage Agent Pipeline →</span>
           </a>
@@ -134,6 +138,119 @@
             <p class="preview-caption">
               Live multi-hop dependency path discovered in FalkorDB: unhandled consumer <code>checkout-api</code> cascades to critical bottleneck <code>order-orchestrator</code>.
             </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dedicated Product Demo Video Showcase -->
+    <section class="demo-video-section" id="demo-video">
+      <div class="site-container">
+        <div class="demo-video-header">
+          <span class="section-tag">00 / Technical Product Demo</span>
+          <h2>Watch BlastGate in Action</h2>
+          <p>
+            Experience the complete pre-merge investigation: Gristle AST extraction, FalkorDB multi-hop blast radius traversal, 5 allowlisted MCP tools, deterministic BLOCK policy, and isolated counterfactual simulation.
+          </p>
+        </div>
+
+        <div class="demo-video-grid">
+          <!-- Video Card with Play Action -->
+          <div class="demo-video-player-card">
+            <div class="demo-video-media-wrap" data-open-video role="button" tabindex="0" aria-label="Play BlastGate Demo Video">
+              <picture>
+                <source srcset="blastgate-demo-poster.webp" type="image/webp">
+                <img src="blastgate-demo-poster.jpg" alt="BlastGate Demo Walkthrough Video Poster" class="demo-video-poster" width="1920" height="1080" loading="lazy">
+              </picture>
+              <div class="demo-video-play-overlay">
+                <div class="demo-video-play-btn" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                </div>
+                <span class="demo-video-badge">Watch Technical Demo · 1:52 · 1080p</span>
+              </div>
+            </div>
+            <div class="demo-video-info">
+              <div class="demo-video-info-title">BlastGate: Know What Breaks Before You Merge</div>
+              <p class="demo-video-info-desc">
+                High-definition technical walkthrough recorded on the live Precision Engineering Console. Features genuine Git diffs, AST code graphs, and deterministic multi-hop Cypher queries.
+              </p>
+              <div class="demo-video-tags">
+                <span class="demo-tag">Track 01</span>
+                <span class="demo-tag">Gristle AST</span>
+                <span class="demo-tag">FalkorDB Cypher</span>
+                <span class="demo-tag">5 MCP Tools</span>
+                <span class="demo-tag">Deterministic Verdict</span>
+                <span class="demo-tag">Counterfactuals</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Video Key Moments & Timeline Breakdown -->
+          <div class="demo-video-moments">
+            <h3><span>⚡</span> Key Moments in This Demo</h3>
+            <div class="demo-moment-list">
+              <div class="demo-moment-item">
+                <span class="demo-moment-time">00:00</span>
+                <div class="demo-moment-body">
+                  <h4>Code-Local Blindness</h4>
+                  <p>Why standard CI passes on breaking contract changes that cripple downstream services.</p>
+                </div>
+              </div>
+
+              <div class="demo-moment-item">
+                <span class="demo-moment-time">00:32</span>
+                <div class="demo-moment-body">
+                  <h4>AST Code Graph (Gristle)</h4>
+                  <p>Indexes <code>PriceQuote.discount_tier: str → dict</code> and maps to route handlers.</p>
+                </div>
+              </div>
+
+              <div class="demo-moment-item">
+                <span class="demo-moment-time">00:42</span>
+                <div class="demo-moment-body">
+                  <h4>Deterministic BLOCK Verdict</h4>
+                  <p>Hard rules engine renders BLOCK without LLM hallucination or prompt instability.</p>
+                </div>
+              </div>
+
+              <div class="demo-moment-item">
+                <span class="demo-moment-time">00:52</span>
+                <div class="demo-moment-body">
+                  <h4>FalkorDB Multi-Hop Traversal</h4>
+                  <p>Discovers unprotected consumer <code>checkout-api</code> and bottleneck <code>order-orchestrator</code> (betweenness 4.0).</p>
+                </div>
+              </div>
+
+              <div class="demo-moment-item">
+                <span class="demo-moment-time">01:04</span>
+                <div class="demo-moment-body">
+                  <h4>Graph Incident Memory</h4>
+                  <p>Recalls past outage <code>INC-2041</code> caused by an unmitigated contract change.</p>
+                </div>
+              </div>
+
+              <div class="demo-moment-item">
+                <span class="demo-moment-time">01:14</span>
+                <div class="demo-moment-body">
+                  <h4>5 Allowlisted MCP Tools</h4>
+                  <p>Deterministic offline planner systematically executes allowlisted tools via tool next_actions.</p>
+                </div>
+              </div>
+
+              <div class="demo-moment-item">
+                <span class="demo-moment-time">01:28</span>
+                <div class="demo-moment-body">
+                  <h4>Counterfactual Simulation</h4>
+                  <p>Simulates fallback mitigation on an isolated graph copy (<code>CLEAR</code>, marked unverified).</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Deployment Transparency Notice -->
+            <div class="demo-video-limitation">
+              <strong>Public Deployment Status</strong>
+              This public Vercel deployment provides the interactive console interface, guided walkthroughs, and recorded reports. Live multi-hop Cypher queries require an active FalkorDB instance and backend service running locally (see <a href="/demo-guide">Demo Guide</a>).
+            </div>
           </div>
         </div>
       </div>
@@ -392,6 +509,25 @@
       </p>
     </div>
   </footer>
+
+  <!-- Video Modal Dialog -->
+  <div class="video-modal" id="video-modal" role="dialog" aria-modal="true" aria-labelledby="video-modal-heading">
+    <div class="video-modal-container">
+      <div class="video-modal-header">
+        <div class="video-modal-title" id="video-modal-heading">
+          <span style="color: #8b5cf6;">▶</span> BlastGate Technical Demo Walkthrough (1:52)
+        </div>
+        <button type="button" class="video-modal-close" data-close-video aria-label="Close Demo Video Dialog">✕</button>
+      </div>
+      <div class="video-modal-body">
+        <video id="modal-video-player" controls preload="metadata" poster="blastgate-demo-poster.webp">
+          <source src="/demo-video.mp4" type="video/mp4">
+          <track src="subtitles.vtt" kind="subtitles" srclang="en" label="English" default>
+          Your browser does not support the video tag.
+        </video>
+      </div>
+    </div>
+  </div>
 
   <script type="module" src="site.js"></script>
 </body>

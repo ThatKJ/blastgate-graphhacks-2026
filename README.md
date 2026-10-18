@@ -12,11 +12,13 @@ engineering decisions.
 | Product website | <https://blastgate.vercel.app> (website, docs and console UI; no graph database attached, [see below](#what-runs-where)) |
 | Public repository | <https://github.com/ThatKJ/blastgate-graphhacks-2026> |
 | Interactive demo | [Run it locally in about 5 minutes](#quickstart-from-a-fresh-clone): FalkorDB in Docker, no LLM key needed |
-| Demo video | *Link to be added once uploaded* |
+| Demo video (1:52) | [Watch on Deployed Website](https://blastgate.vercel.app/#demo-video) · [Judge Walkthrough](https://blastgate.vercel.app/demo-guide#demo-video) · Master export: `~/Desktop/BlastGate-Demo-Final.mp4` |
 
-![BlastGate code-graph review of PR-900 ending in a BLOCK verdict](docs/screenshots/02-codegraph-review.jpg)
+[![BlastGate Technical Demo Walkthrough](web/blastgate-demo-poster.jpg)](https://blastgate.vercel.app/#demo-video)
+*BlastGate Technical Demo Walkthrough: Gristle AST Code Graph → FalkorDB Multi-Hop Traversal → 5 Allowlisted MCP Tools → Deterministic BLOCK Verdict → Isolated Counterfactual Simulation.*
 
 ---
+
 
 ## Problem and solution
 

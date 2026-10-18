@@ -1,0 +1,42 @@
+WEBVTT
+
+1
+00:00:01.000 --> 00:00:04.195
+BlastGate. Know what breaks before you merge.
+
+2
+00:00:06.500 --> 00:00:20.435
+In distributed microservices, a single field type change looks harmless in a local git diff. Standard CI tests pass because only the producer is checked, leaving teams completely blind to cross-service dependencies.
+
+3
+00:00:20.000 --> 00:00:26.666
+BlastGate changes this by evaluating pull requests through connected FalkorDB service graphs before merge.
+
+4
+00:00:33.000 --> 00:00:43.014
+Here, PR 900 changes discount tier from a string to a dictionary. Gristle AST code graph extracts the symbol and maps it to the pricing-engine contract.
+
+5
+00:00:43.500 --> 00:00:52.511
+BlastGate deterministic policy evaluates the impact and renders an unequivocal BLOCK decision. No hallucination, purely inspectable evidence.
+
+6
+00:00:53.000 --> 00:01:05.007
+A multi-hop Cypher traversal in FalkorDB reveals that checkout API consumes this field without a fallback, propagating risk downstream to order orchestrator and risking synthetic SLAs.
+
+7
+00:01:05.500 --> 00:01:13.546
+Historical incident patterns are recalled from graph memory, confirming past outages from similar unmitigated contract changes.
+
+8
+00:01:14.000 --> 00:01:27.209
+Five allowlisted MCP tools systematically gather evidence. The offline planner follows deterministic next-actions, inspecting blast radius, contract coverage, and betweenness centrality.
+
+9
+00:01:28.000 --> 00:01:40.194
+Finally, BlastGate runs a counterfactual simulation on an isolated graph copy. Adding a fallback clears the graph risk, while clearly flagging the code change as unverified until tests pass.
+
+10
+00:01:44.500 --> 00:01:48.944
+Follow the graph. Understand the impact. Decide with evidence.
+

@@ -61,6 +61,85 @@
         </div>
       </div>
 
+      <!-- Demo Video Walkthrough for Judges -->
+      <section class="guide-section" id="demo-video">
+        <h2 class="guide-heading">Cinematic Technical Walkthrough (1:52)</h2>
+        <div class="demo-video-grid" style="margin-top: 1.5rem;">
+          <div class="demo-video-player-card">
+            <div class="demo-video-media-wrap" data-open-video role="button" tabindex="0" aria-label="Play BlastGate Demo Video">
+              <picture>
+                <source srcset="blastgate-demo-poster.webp" type="image/webp">
+                <img src="blastgate-demo-poster.jpg" alt="BlastGate Demo Walkthrough Video Poster" class="demo-video-poster" width="1920" height="1080" loading="lazy">
+              </picture>
+              <div class="demo-video-play-overlay">
+                <div class="demo-video-play-btn" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                </div>
+                <span class="demo-video-badge">Watch Full Walkthrough · 1:52 · 1080p</span>
+              </div>
+            </div>
+            <div class="demo-video-info">
+              <div class="demo-video-info-title">BlastGate: Complete Track 01 Rubric Demonstration</div>
+              <p class="demo-video-info-desc">
+                Screen recording of the live console demonstrating AST code graphs, 5 allowlisted MCP tools, deterministic BLOCK verdict, incident memory, and isolated counterfactual simulation.
+              </p>
+              <div class="demo-video-tags">
+                <span class="demo-tag">Track 01</span>
+                <span class="demo-tag">Gristle AST</span>
+                <span class="demo-tag">FalkorDB Cypher</span>
+                <span class="demo-tag">Deterministic Verdict</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="demo-video-moments">
+            <h3><span>📋</span> What Judges Will See</h3>
+            <div class="demo-moment-list">
+              <div class="demo-moment-item">
+                <span class="demo-moment-time">00:32</span>
+                <div class="demo-moment-body">
+                  <h4>Gristle AST Code Graph</h4>
+                  <p>Extracts <code>PriceQuote.discount_tier: str → dict</code> and maps routes.</p>
+                </div>
+              </div>
+              <div class="demo-moment-item">
+                <span class="demo-moment-time">00:42</span>
+                <div class="demo-moment-body">
+                  <h4>Deterministic BLOCK Policy</h4>
+                  <p>Guaranteed decision logic without LLM hallucination.</p>
+                </div>
+              </div>
+              <div class="demo-moment-item">
+                <span class="demo-moment-time">00:52</span>
+                <div class="demo-moment-body">
+                  <h4>FalkorDB Multi-Hop Graph</h4>
+                  <p>Discovers unprotected consumer <code>checkout-api</code> and critical cascade.</p>
+                </div>
+              </div>
+              <div class="demo-moment-item">
+                <span class="demo-moment-time">01:14</span>
+                <div class="demo-moment-body">
+                  <h4>5 Allowlisted MCP Tools</h4>
+                  <p>Deterministic offline planner following tool next_actions.</p>
+                </div>
+              </div>
+              <div class="demo-moment-item">
+                <span class="demo-moment-time">01:28</span>
+                <div class="demo-moment-body">
+                  <h4>Counterfactual Simulation</h4>
+                  <p>Isolated graph copy clears risk (unverified until tests pass).</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="demo-video-limitation">
+              <strong>Local Backend Requirement</strong>
+              The hosted Vercel site is an interactive presentation of the console and reports. Executing live FalkorDB queries requires the local Docker instance and backend service (see setup below).
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- 3-Minute Judge Evaluation Track -->
       <section class="guide-section">
         <h2 class="guide-heading">The 3-Minute Judge Evaluation Track</h2>
@@ -250,6 +329,25 @@ BLASTGATE_GRISTLE_BIN="$(pwd)/.gristle-venv/bin/gristle" .venv/bin/pytest tests/
       </div>
     </div>
   </footer>
+
+  <!-- Video Modal Dialog -->
+  <div class="video-modal" id="video-modal" role="dialog" aria-modal="true" aria-labelledby="video-modal-heading">
+    <div class="video-modal-container">
+      <div class="video-modal-header">
+        <div class="video-modal-title" id="video-modal-heading">
+          <span style="color: #8b5cf6;">▶</span> BlastGate Technical Demo Walkthrough (1:52)
+        </div>
+        <button type="button" class="video-modal-close" data-close-video aria-label="Close Demo Video Dialog">✕</button>
+      </div>
+      <div class="video-modal-body">
+        <video id="modal-video-player" controls preload="metadata" poster="blastgate-demo-poster.webp">
+          <source src="/demo-video.mp4" type="video/mp4">
+          <track src="subtitles.vtt" kind="subtitles" srclang="en" label="English" default>
+          Your browser does not support the video tag.
+        </video>
+      </div>
+    </div>
+  </div>
 
   <script type="module" src="site.js"></script>
 </body>

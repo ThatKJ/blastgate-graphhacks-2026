@@ -14,3 +14,8 @@ blastgate_report*.json
 codegraph_demo_out/
 .vercel
 .env.local
+*.mp4
+*.webm
+*.mov
+*.avi
+*.aiff
