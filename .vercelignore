@@ -1,0 +1,11 @@
+.env
+.venv
+.gristle-venv
+.playwright-mcp
+.impeccable
+.pytest_cache
+__pycache__
+codegraph_demo_out
+tests
+web/tests
+.env.local

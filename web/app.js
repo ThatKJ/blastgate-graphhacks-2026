@@ -46,6 +46,10 @@ async function loadHealth() {
       : ["note", `Agent: ${agentMode("deterministic-demo").label}`];
   }
   const items = [db, agent];
+  // The public Vercel build has no FalkorDB attached; say so instead of implying a local server is broken.
+  if (!ready.ok && !["localhost", "127.0.0.1", "[::1]"].includes(location.hostname)) {
+    items.unshift(["note", "Hosted site: no graph database attached, so investigations are unavailable here. Run the full demo locally (README → Quickstart)"]);
+  }
   if (health.ok) {
     state.health = health.data;
     if (!(health.data.features || []).includes("codegraph_report")) {

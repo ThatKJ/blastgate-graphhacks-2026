@@ -12,3 +12,5 @@ blastgate_report*.json
 .playwright-mcp/
 .gristle-venv/
 codegraph_demo_out/
+.vercel
+.env.local

@@ -1,372 +1,181 @@
+<div align="center">
+
 # BlastGate
 
-Evidence-first pre-merge change-impact analysis on **FalkorDB**.
-GraphHacks Track 01: *Agents That Act on Connected Data*.
+### Know what breaks before you merge.
 
-> **BlastGate doesn't just display a graph. It uses connected graph data to investigate a change, guide its next steps, and explain the decision it makes.**
+BlastGate follows a code change through a code graph and a FalkorDB service graph so you can see which downstream services, SLAs and incidents it reaches, then gives a deterministic, evidence-backed **BLOCK / WARN / CLEAR** decision.
 
-Imagine a developer changes `PriceQuote.discount_tier` from a string to an object (`dict`). That looks like one small code change, but the consequences can cross multiple services.
+**GraphHacks 2026 · FalkorDB · Track 01: Agents That Act on Connected Data**
 
-1. **Detect & Code Graph:** BlastGate analyzes the real Git change with Gristle, constructing an AST-level code graph in FalkorDB.
-2. **Validated Contract Mapping:** Connects the code change to the service graph through contract manifests (`blastgate.map.json`) from the base commit without string guessing.
-3. **Multi-Hop Agent Investigation:** The agent investigates the connected systems through FalkorDB-backed MCP tools. It discovers that `checkout-api` lacks a fallback, traces downstream dependencies, and retrieves relevant synthetic SLA and incident evidence.
-4. **Deterministic Verdict:** Based on that evidence, BlastGate's deterministic policy returns **BLOCK**. The interface shows the affected services, reasons, evidence, recommended tests, and reviewers.
-5. **Counterfactual Simulation:** Finally, we run a counterfactual simulation. Adding an assumed fallback changes the outcome to **CLEAR** on a temporary graph copy (`GRAPH.COPY`), but the original decision remains BLOCK. The simulation is explicitly marked unverified until contract tests pass.
+[Live website](https://blastgate.vercel.app) ·
+[GitHub](https://github.com/ThatKJ/blastgate-graphhacks-2026) ·
+[Judge quickstart](#judge-quickstart-local-about-5-minutes) ·
+[Architecture](#architecture) ·
+[Track 01 mapping](#track-01-requirement-mapping) ·
+[Limitations](#trust-security-and-limitations)
 
-- **Milestone 1:** The graph model, a deterministic verdict engine, and counterfactual simulation on an isolated `GRAPH.COPY`.
-- **Milestone 2:** A FastAPI backend, typed MCP tool server (stdio), evidence-driven agent with GroqCloud inference option, and the obsidian-themed engineering console with interactive SVG graph evidence & counterfactual explorer.
+</div>
 
-> **All data is synthetic.** Services, engineers (`eng-alpha`…), SLAs, penalty rates and incidents are fabricated for this demo. They describe no real company, person, customer or measured loss. **Groq powers live LLM inference; synthetic data powers the demo.** Nothing here is production-validated.
+> [!IMPORTANT]
+> **The investigation itself runs locally. The public site is the product website.**
+> <https://blastgate.vercel.app> serves the product website, the docs pages and the console UI from the real FastAPI app.
+> No FalkorDB instance is attached to that deployment, so its console says *"Hosted site: no graph database attached"*,
+> and `/ready` returns `503 graph_unavailable`. Run the full graph-backed investigation (PR-900, MCP tools, verdict
+> and counterfactual) with the [local quickstart](#judge-quickstart-local-about-5-minutes).
 
-## Track 01 at a glance
+> [!NOTE]
+> **All demo data is synthetic.** Services, engineers (`eng-alpha`, …), incidents (`INC-2041`, …), SLAs and penalty
+> rates are made up. They describe no real company, person, customer or measured loss.
 
-**The loop:** real git diff → Gristle **code graph** (FalkorDB) → validated mapping → **service graph** (FalkorDB) →
-agent picks among **6 allowlisted MCP tools** → deterministic **BLOCK / WARN / CLEAR** → recommended tests and
-reviewers → **counterfactual** on a temporary `GRAPH.COPY`.
+![BlastGate product website](docs/screenshots/01-site-hero.jpg)
 
-| Track 01 asks for | Where it happens | Where a judge sees it |
+---
+
+## The problem
+
+Imagine changing one field: `PriceQuote.discount_tier` goes from `str` to `dict`. The diff is two lines, and the
+changed file looks fine. The risk sits in the files you *didn't* open:
+
+- a consumer (`checkout-api`) reads that field and **has no fallback**;
+- three services depend on that consumer, and they back **SLAs** with penalty clauses;
+- this contract caused an incident before (`INC-2041`), and the engineers who resolved it are the right reviewers.
+
+None of that lives in the changed file. It lives in **relationships**: code → contract → consumer → dependency
+chain → SLA → incident → engineer. Reviewing only the diff misses the blast radius.
+
+## The solution
+
+```text
+Git diff → Gristle code graph → validated mapping → FalkorDB service graph → MCP investigation
+        → deterministic verdict → recommendations → isolated counterfactual
+```
+
+1. **Code graph.** [Gristle](https://github.com/Alchemy-Agentic/gristle) indexes the base and head commits into two
+   temporary FalkorDB code graphs. BlastGate's Cypher finds the changed symbols and the type-level users, callers,
+   routes and tests.
+2. **Validated mapping.** `blastgate.map.json`, read from the **base commit**, maps the source class to a service
+   contract field. A mapping is accepted only if the service exists and `EXPOSES` that contract and field. BlastGate
+   never guesses from names.
+3. **Service-graph investigation.** An agent calls **6 allowlisted, typed MCP tools** backed by FalkorDB queries.
+   Every tool result returns `next_actions` that point to the next hop in the graph.
+4. **Deterministic verdict.** `verdict.decide()` turns the graph evidence into BLOCK / WARN / CLEAR. The planner
+   (rule-based or LLM) **can't change it**.
+5. **Recommendations.** Tests come from `TESTS_FUNCTION` edges, and reviewers from `RESOLVED_INCIDENT` /
+   `AUTHORED_COMMITS` edges.
+6. **Counterfactual.** BlastGate assumes a mitigation, applies it on a `GRAPH.COPY` and re-runs the rules there.
+   The original graph and verdict are never touched.
+
+**This is more than a graph visualization next to a chatbot.** The graph decides what the agent looks at next:
+consumers lead to the blast radius, which leads to criticality, then incidents and reviewers. The graph also
+supplies every fact in the answer: model text that cites something no tool returned is withheld. And the graph
+decides the outcome through deterministic rules over traversed evidence.
+
+## Demo links
+
+| What | Where | Status |
 | --- | --- | --- |
-| Multi-hop reasoning | Code graph: `ACCEPTS`/`RETURNS` → `CALLS*1..4` → `Route-[:HANDLES]` → `TESTS_FUNCTION`. Service graph: `CONSUMES_FIELD` → `DEPENDS_ON*1..8` → `BACKS_SLA`, plus `CAUSED_BY_CHANGE_IN` → `RESOLVED_INCIDENT` / `AUTHORED_COMMITS` | Impact map (`pricing-engine → checkout-api → order-orchestrator → invoice-worker`); loop strip stages 1–4 |
-| Graph queries and algorithms as tools | `blastgate/queries.py` (coverage, consumers, downstream, SLAs, `algo.betweenness`, incidents, reviewers), `blastgate/codegraph.py` `CG_*` queries, `GRAPH.COPY` | Agent timeline (graph evidence IDs per call); the review's investigation trace |
-| Tool selection through MCP | `blastgate/mcp_server.py` (6 typed, read-only tools over stdio). The live planner (`GroqPlanner`) lets the model choose each call. The offline planner (`DeterministicPlanner`, labelled "rule-based, no LLM") follows each tool result's `next_actions` | Agent timeline: tool, arguments, **why** it ran, result, evidence; the planner mode is shown on every run |
-| Actions driven by graph evidence | `verdict.decide()` (deterministic and authoritative), recommended tests and reviewers, the written review report, the counterfactual | Decision stage, reasons, recommendations, `codegraph_demo_out/report.md` |
-| Explainable results | Evidence inventory (`found` / `none_found` / `unknown` / `not_checked` / `check_failed`), `verified_facts` built from tool payloads only, the explanation gate, uncertainties and known gaps | Evidence panel, "Unresolved" lists, counterfactual labelled **assumed, unverified** |
-| Remember across runs / share state | Opt-in memory graph (`blastgate/memory.py`): the code-graph reviewer and the investigation agent are separate processes that both write to it and read from it, keyed by exact ids | Memory panel: earlier investigations, code reviews, and each remembered fact checked against the current graph |
+| Product website + docs | <https://blastgate.vercel.app> (`/`, `/how-it-works`, `/architecture`, `/demo-guide`) | ✅ Live on Vercel (verified 2026-10-18) |
+| Console UI (hosted) | <https://blastgate.vercel.app/console> | ⚠️ Loads; investigations unavailable because no graph DB is attached |
+| Full interactive demo | Local: `scripts/start_demo.sh` → `http://127.0.0.1:8766/console` | ✅ Verified end to end (PR-900 → BLOCK → counterfactual CLEAR) |
+| Source | <https://github.com/ThatKJ/blastgate-graphhacks-2026> | Public |
+| Demo video | Uploaded with the submission (raw screen recording of the local demo) | — |
 
-**Which planner chose the tools.** Every run verified in this repo used the offline deterministic planner: the
-tool order there follows the graph's `next_actions`, and no LLM chose it. The live-model path is covered by tests
-with scripted Groq responses (`tests/agent/test_groq_planner.py`). A real Groq run was **not** part of this
-verification.
+## Judge quickstart (local, about 5 minutes)
 
-## Judge demo (about 5 minutes, no LLM key needed)
+**Prerequisites:** Docker, Python 3.12 (3.11+ works for Gristle, 3.10+ for BlastGate itself), git. No LLM key
+is needed.
 
 ```bash
+git clone https://github.com/ThatKJ/blastgate-graphhacks-2026.git && cd blastgate-graphhacks-2026
+
+# 1. FalkorDB (the image digest these tests ran on: graph module 4.22.1)
 docker run -d --name blastgate-falkordb -p 6379:6379 falkordb/falkordb@sha256:b0bdcac2cbaff989e77cb0610439b7a9289e86de033ccbbd4368b66fb680ae7a
+
+# 2. BlastGate environment and the synthetic service graph "blastgate_m1"
 python3.12 -m venv .venv && .venv/bin/pip install -r requirements.txt
-.venv/bin/python blastgate_milestone1.py                 # seed the synthetic service graph "blastgate_m1"
-scripts/setup_gristle.sh && export BLASTGATE_GRISTLE_BIN="$PWD/.gristle-venv/bin/gristle"
-export BLASTGATE_MEMORY_GRAPH=blastgate_memory           # shared, persistent investigation memory
-.venv/bin/python scripts/codegraph_demo.py               # real git diff -> code graph -> BLOCK (exit 2)
-scripts/start_demo.sh                                    # open http://127.0.0.1:8766/ (PORT=... to change)
+.venv/bin/python blastgate_milestone1.py
+
+# 3. Gristle in its own venv (it pins mcp<2), then the real git-diff review
+scripts/setup_gristle.sh
+export BLASTGATE_GRISTLE_BIN="$PWD/.gristle-venv/bin/gristle"
+export BLASTGATE_MEMORY_GRAPH=blastgate_memory
+.venv/bin/python scripts/codegraph_demo.py      # exit code 2 = BLOCK; writes codegraph_demo_out/report.{md,json}
+
+# 4. Console + API on one origin, deterministic planner, PR-900 registered
+scripts/start_demo.sh                           # prints http://127.0.0.1:8766/  (PORT=8770 scripts/start_demo.sh to change)
 ```
 
-`scripts/start_demo.sh` serves the console and the API from **one origin** with the code-graph change (PR-900),
-memory, and the deterministic planner enabled. It refuses a port that is already in use and never stops another
-process. Open the URL it prints.
+`start_demo.sh` checks that FalkorDB is up, that the graph is seeded and that the report exists. It refuses a port
+that's already in use and never stops another process.
 
-- **Stale server.** An older BlastGate process still serves the new console files, because they are read from disk on
-  every request. The console checks `/health.features` and says *"older server"* instead of failing.
-- **Stopped server.** A tab whose server has stopped shows *"No response from the server … (origin)"* along with
-  the start command.
+**Then, in the console:**
 
-To record from a clean memory, drop the memory graph and regenerate the review before starting the server:
+1. **Change.** Open **PR-900**. It shows the real diff `contracts/pricing.py::PriceQuote.discount_tier: str → dict`.
+   **Code-graph review** opens the full Gristle report: 6 functions and 2 routes linked to `PriceQuote`, and the
+   validated mapping to `pricing-api-v2.discount_tier`.
+2. **Graph.** **Analyze impact**. The traversal reaches `checkout-api` (no fallback), then 4 downstream services
+   and 3 synthetic SLAs.
+3. **Investigation.** **Investigate with agent**. The timeline lists every MCP call: tool, arguments, why it ran,
+   result and graph evidence. The badge reads *Demo planner, rule-based, no LLM*.
+4. **Decision.** **BLOCK**, with reasons, the evidence inventory, `INC-2041`, reviewers `eng-alpha` and
+   `eng-bravo`, and the recommended tests.
+5. **Counterfactual.** **Run simulation**. The copy with the assumed fallback reads **CLEAR**, next to the real
+   graph, which still reads **BLOCK**. The result is labelled *assumed, unverified*.
 
-```bash
-.venv/bin/python -c "from blastgate.graph import connect; connect().select_graph('blastgate_memory').delete()"
-.venv/bin/python scripts/codegraph_demo.py && scripts/start_demo.sh
-```
+## Screenshots
 
-These exact steps were run from a clean copy (fresh venvs, no `.env`, Python 3.12, memory on). Results:
-- seed exit 0;
-- demo exit 2 (BLOCK);
-- the first PR-900 agent run returned BLOCK and recalled the reviewer's code review;
-- the second run recalled the first and returned BLOCK again;
-- `pytest` gave 226 passed / 1 skipped (live Groq), exit 0.
+All of these are frames from a real recording of the local console (PR-900) and the deployed site.
 
-1. **Change.** The start panel leads with PR-900; *Code-graph review* in the rail opens the full report. Shows the real diff (`discount_tier: str → dict`) and the
-   changed symbol `contracts/pricing.py::PriceQuote`.
-2. **Investigate.** Gristle links 6 functions and 2 routes to `PriceQuote`. These links are type-level and do
-   not prove a field read. `reporting/` is unmapped, so it stays **unknown**.
-3. **Follow graph paths.** *Investigate PR-900 with the MCP agent* → *Analyze impact*. The validated mapping
-   reaches `checkout-api`, which has no fallback, and then 4 downstream services and 3 SLAs.
-4. **Select tools.** *Investigate with agent*. The timeline shows each MCP call, its arguments and why it ran.
-5. **Decide.** BLOCK comes from the deterministic engine; the planner can't change it.
-6. **Prove.** Evidence inventory, verified facts, INC-2041, reviewers `eng-alpha` and `eng-bravo`, and the
-   recommended tests.
-7. **Simulate.** *Run simulation*. BLOCK → CLEAR on a temporary copy, labelled assumed and unverified. The real
-   verdict stays BLOCK and the original graph is unchanged.
-8. **Remember.** With `BLASTGATE_MEMORY_GRAPH` set, the first agent run already recalls the code review that the
-   reviewer process saved. *Investigate with agent* again: the Memory panel lists the earlier run and checks each
-   remembered fact against the current graph, and the verdict is recomputed without it.
+| Code-graph review → BLOCK | Graph evidence |
+| --- | --- |
+| ![Gristle code-graph review with the real git diff and the BLOCK verdict](docs/screenshots/02-codegraph-review.jpg) | ![Graph nodes, relationships and evidence inventory](docs/screenshots/03-graph-evidence.jpg) |
+
+| Counterfactual on an isolated copy | Hosted console (Vercel, no DB attached) |
+| --- | --- |
+| ![Counterfactual: real graph BLOCK vs copy CLEAR](docs/screenshots/04-counterfactual.jpg) | ![Hosted console honestly reporting no graph database](docs/screenshots/hosted-console-1440.png) |
 
 ## Architecture
 
-```text
-git diff ──► blastgate.codegraph ──► Gristle (separate venv) ──► FalkorDB code graphs (base, head; temporary)
-               │ CG_* read-only Cypher · blastgate.map.json from the base commit, validated against both graphs
-               └─► review report (codegraph_demo_out/report.json) ──► opt-in: registered as PR-900 for the agent
+```mermaid
+flowchart LR
+  diff["Git diff<br/>(base..working tree)"] --> gristle["Gristle code graph<br/>temporary FalkorDB graphs"]
+  gristle --> map["Validated mapping<br/>blastgate.map.json @ base"]
+  map --> svc[("FalkorDB service graph<br/>blastgate_m1")]
 
-HTTP client ──► FastAPI (blastgate/api.py)
-                 ├─ POST /api/analyze ─────────────► analysis.analyze() ─► verdict.decide()      (no LLM)
-                 ├─ POST /api/simulate ────────────► tools.simulate_mitigation ─► GRAPH.COPY      (no LLM)
-                 └─ POST /api/agent/investigate ──► agent.investigate()
-                        planner (Groq LLM, or the labelled deterministic demo)
-                           │ proposes tool calls          ▲ tool results
-                           ▼                              │
-                        orchestrator: allowlist · JSON-schema validation · PR pinning · no duplicates
-                                      · ≤ 6 calls · simulation only if the user asked
-                           │  MCP JSON-RPC over stdio (subprocess: python -m blastgate.mcp_server)
-                           ▼
-                        mcp_server.py ─► tools.py ─► analysis.py steps ─► parameterised ro_query ─► FalkorDB
-                        after the loop: verdict = analysis.analyze() (deterministic, authoritative)
+  subgraph agent["Investigation agent (blastgate/agent.py)"]
+    planner["Planner<br/>deterministic (default) or Groq LLM (optional)"]
+    orch["Orchestrator<br/>allowlist · JSON schema · PR pinning · ≤6 calls"]
+    planner <--> orch
+  end
+
+  orch -- "MCP JSON-RPC over stdio" --> mcp["MCP server<br/>6 read-only tools"]
+  mcp --> svc
+  svc --> verdict["Deterministic verdict<br/>verdict.decide()"]
+  verdict --> report["Evidence inventory · verified facts<br/>tests · reviewers · report"]
+  mcp -- "simulate_mitigation" --> copy[("GRAPH.COPY<br/>temporary, deleted after")]
+  copy --> cf["Counterfactual verdict<br/>assumed, unverified"]
+  report -. "opt-in" .-> mem[("Memory graph<br/>BLASTGATE_MEMORY_GRAPH")]
+  gristle -. "review recorded" .-> mem
 ```
 
-- **Graph facts come only from FalkorDB.** Code builds `verified_facts` from tool payloads, and `summary` from
-  the verdict and an evidence `inventory`. Model text never becomes the summary.
-- **Model text is kept only if it matches the evidence.** It goes to `model_explanation`, `inferences` and
-  `recommendations`. All three are withheld, with a warning naming the reason, if the text claims something is
-  absent that wasn't verified empty, or names an incident, SLA, engineer or service that no tool returned (see
-  *Evidence inventory and explanation gate*).
-- **The LLM can't change the verdict.** If its `recommended_verdict` differs from the engine's, the response
-  shows the disagreement in `warnings`.
-- **Each layer does one job.** The tools reuse `analysis.py`'s steps (`coverage`, `consumers`, `blast_radius`,
-  `centrality`, `incidents`, `reviewers`, `exposure`); the MCP server only wraps `tools.py`; the agent never
-  imports the graph functions.
-
-## Setup
-
-Requires Python 3.10+ and Docker.
-
-```bash
-docker run -d --name blastgate-falkordb -p 6379:6379 falkordb/falkordb@sha256:b0bdcac2cbaff989e77cb0610439b7a9289e86de033ccbbd4368b66fb680ae7a   # graph module 4.22.1, the image these tests ran on
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env          # git-ignored; edit locally, never commit
-set -a; source .env; set +a   # load it into the shell
-python blastgate_milestone1.py   # seeds the synthetic graph "blastgate_m1" and prints the three verdicts
-```
-
-### Configure the Groq LLM (optional, needed only for the live agent)
-
-1. Create a free account at <https://console.groq.com>, open **API Keys**, and create a key.
-2. In your local `.env` (never in a tracked file): `AGENT_PROVIDER=groq`, `GROQ_API_KEY=<your key>`, and
-   optionally `AGENT_MODEL=openai/gpt-oss-20b` (the default). To use another model, change `AGENT_MODEL`; it must
-   be a tool-use-capable model available to your account (see <https://console.groq.com/docs/models>).
-3. Reload: `set -a; source .env; set +a`.
-
-`AGENT_PROVIDER=deterministic` runs a **rule-based demo planner (no LLM, no key)**. Every response states which planner ran in `agent_mode`: `llm: groq/<model>` for live Groq, `deterministic-demo (rule-based planner, no LLM)…` for the demo, and `test: …` for test-only planners. A Groq failure returns an error status, never a demo-planner report. If `AGENT_PROVIDER` is unset, or set to `groq` with no key, `/api/agent/investigate`
-returns `503 agent_provider_not_configured`. No other endpoint needs a key.
-
-| Variable | Default | Meaning |
-| --- | --- | --- |
-| `FALKORDB_HOST` / `FALKORDB_PORT` / `FALKORDB_PASSWORD` | `localhost` / `6379` / – | database |
-| `BLASTGATE_GRAPH` | `blastgate_m1` | graph used by the API and MCP server (never chosen by the model) |
-| `AGENT_PROVIDER` | unset | `groq` or `deterministic` |
-| `AGENT_MODEL` | `openai/gpt-oss-20b` | Groq model ID |
-| `GROQ_API_KEY` | – | secret; read by the official `groq` SDK |
-| `AGENT_TIMEOUT_S` / `MCP_TIMEOUT_S` | `30` / `30` | per-request timeouts (seconds) |
-| `AGENT_MAX_TOOL_CALLS` | `6` | clamped to the hard cap of 6 |
-
-## Run the backend
-
-```bash
-uvicorn blastgate.api:app --port 8000      # OpenAPI docs: http://localhost:8000/docs
-```
-
-| Route | Purpose |
+| Component | File |
 | --- | --- |
-| `GET /health` | always 200 (liveness); reports `falkordb: up/down` and whether a provider is configured. Never returns secrets |
-| `GET /ready` | 200 only when FalkorDB is reachable, else 503 |
-| `GET /api/scenarios` | synthetic PRs: id, title, contract, field, change, new type, breaking flag, synthetic label |
-| `POST /api/analyze` | deterministic Milestone 1 analysis (no LLM) |
-| `POST /api/simulate` | counterfactual on a temporary graph copy; `code_level_correctness: UNVERIFIED` |
-| `POST /api/agent/investigate` | evidence-driven agent over MCP; returns code-rendered `summary` and `inventory`, `verified_facts`, gated `model_explanation`, assumptions, unknowns, tool trace |
+| FastAPI app, website and console routes | `blastgate/api.py`, `web/` |
+| Service-graph seed and data | `blastgate/graph.py` |
+| Service-graph Cypher | `blastgate/queries.py` |
+| Analysis steps and exposure | `blastgate/analysis.py` |
+| Verdict rules | `blastgate/verdict.py` |
+| MCP server and tool implementations | `blastgate/mcp_server.py`, `blastgate/tools.py` |
+| Planners, orchestrator, explanation gate | `blastgate/agent.py` |
+| Counterfactual on `GRAPH.COPY` | `blastgate/simulation.py` |
+| Gristle review (git diff → code graph → verdict) | `blastgate/codegraph.py`, `scripts/codegraph_demo.py` |
+| Investigation memory | `blastgate/memory.py` |
+| Vercel entrypoint | `app.py`, `vercel.json` |
 
-```bash
-curl -s localhost:8000/api/analyze -H 'content-type: application/json' -d '{"pr_id":"PR-104"}'
-curl -s localhost:8000/api/simulate -H 'content-type: application/json' \
-  -d '{"pr_id":"PR-104","consumer":"checkout-api","assumption":"checkout-api adds a tolerant discount_tier parser"}'
-curl -s localhost:8000/api/agent/investigate -H 'content-type: application/json' \
-  -d '{"pr_id":"PR-104","question":"Safe to merge?","simulate":{"consumer":"checkout-api","assumption":"checkout-api adds a tolerant discount_tier parser"}}'
-```
+## Technical deep dive
 
-**Errors.** Errors use the shape `{"error": code, "message": safe text}`. A malformed body gets a 422. An unknown
-PR gets `404 unknown_scenario`. If FalkorDB is down you get `503 graph_unavailable`. An invalid simulation target
-gets a 400. Provider problems map to statuses as follows; the `trace` field carries the partial tool trace:
-`provider_rate_limited` gives 429 with a `Retry-After` header, `provider_timeout` gives 504, and
-`provider_auth`, `provider_model_unavailable`, `provider_bad_request` and `provider_network` give 502. If the MCP
-server can't start you get `503 tool_server_unavailable`. A failed agent run is never returned as a completed
-investigation.
-
-## Console (frontend)
-
-Open <http://localhost:8000> after starting the backend. The FastAPI app serves the console from `web/` on the
-same origin, so there's no build step, no CORS, and no keys in the browser. It answers one question: *what
-could break if I merge this change?*
-
-The **agent loop** strip across the top has seven stages: code change → code graph → mapping → service graph →
-MCP tools → decision → counterfactual. Each stage shows only what this page actually received. A stage that
-hasn't run says so, and a declared (non-code-graph) scenario marks the code stages as not applicable. The
-**agent timeline** lists every real MCP call in order: the tool, its arguments, why it ran, the result, the graph
-evidence IDs, and any gate rejection.
-
-1. **Pick a change.** The list comes from `GET /api/scenarios`.
-2. **Analyze impact** (`POST /api/analyze`, no LLM) shows the deterministic verdict and the engine's reasons,
-   the code-rendered `summary`, an **impact map**, the **evidence inventory** with its five statuses, and detail
-   tables for consumers, paths, synthetic SLAs, incidents and reviewers.
-3. **Investigate with agent** (`POST /api/agent/investigate`) adds a separate panel:
-   - **Planner badge:** live model, demo planner or test planner, read from `agent_mode`.
-   - **Model explanation:** shown only when `explanation_status` is `accepted`, and labelled as interpretation.
-     A withheld explanation is never rendered; the reason is.
-   - **Also shown:** the verified facts and the tool calls.
-
-   If the agent fails, the panel says so, and any deterministic result above stays labelled "From deterministic
-   analysis". A demo result is never substituted.
-4. **Counterfactual simulation** (`POST /api/simulate`) shows the backend's exact label, the real-graph verdict
-   next to the copy's, side-by-side before-and-after impact maps, the explicit relationship and exposure diff, and
-   `UNVERIFIED` for code-level correctness.
-
-**The impact map & graph evidence explorer** draws only what the API returned:
-- the changed field;
-- each consumer's `CONSUMES_FIELD` edge (dashed if it has a fallback);
-- each affected service's path, by hop depth;
-- sampled `algo.betweenness` (`BT`) and `SLA ×n` badges;
-- interactive node and relationship selection (mouse or keyboard) opening the graph evidence inspector.
-
-Arrows show impact flow, which runs opposite to `DEPENDS_ON`. The map's table view is the detail tables.
-
-**Status colours:** `#E5534B` block, `#D4A72C` warn and `#3FB68B` clear are used only for verdict status. Each
-always comes with a glyph and a word, and each passes 3:1 contrast and colour-blind separation on the
-`#1A2230` surface (checked with a palette validator).
-
-**Frontend checks:**
-- `node --test web/tests/*.test.mjs` renders **real recorded backend responses** through the view functions.
-- `python web/tests/capture_fixtures.py` re-records those responses from the live app. Two of them, a withheld
-  explanation and a 429, come from scripted planners, and their file names say so.
-- `tests/api/test_web.py` checks the static serving, the CSP, and that the fixtures still match the response
-  models.
-
-**Contract change:** `/api/analyze` now also returns `summary` and `inventory`, built by the same code as the
-agent report. Before this, a user without an LLM provider couldn't tell "not checked" from "none found".
-
-## Deployment safety (live provider)
-
-`POST /api/agent/investigate` is the **only** route that can trigger a paid or quota-limited provider call, and
-only when `AGENT_PROVIDER=groq`. Every other route is deterministic, and so is the agent in `deterministic` mode;
-none of them call a provider. In live mode the server enforces two protections itself; neither depends on the
-frontend.
-
-- **Access.** If `AGENT_LIVE_TOKEN` is set, each live investigation must send `Authorization: Bearer <token>`,
-  checked with a constant-time compare (the console shows a token field). If it isn't set, live investigations
-  are accepted only from loopback clients with no `X-Forwarded-For` or `Forwarded` header. That covers local
-  judging; a proxied or remote caller gets `403 live_access_local_only`.
-- **Rate limits.** Defaults are 2 per client per minute, 3 per minute overall and 60 per day overall
-  (`AGENT_LIVE_MAX_*`), with 429 and `Retry-After`. They're checked only after access passes, so refused callers
-  can't use up the budget. The counters live in process memory: with several workers or replicas the limits
-  multiply, so use one process or move the counters to a shared store.
-
-Other notes:
-- `GROQ_API_KEY` stays on the server; no response or served file contains it, which is tested.
-- No CORS middleware is installed, so browsers on other origins can't call the API. CORS isn't authentication,
-  though: it doesn't stop scripts or curl.
-- `uvicorn` binds to `127.0.0.1` by default. Binding `--host 0.0.0.0`, tunnelling, or deploying publicly without
-  `AGENT_LIVE_TOKEN` keeps live mode limited to the host machine; with a token, anyone holding it can spend quota
-  up to the limits.
-- For a public demo, the safest choice is `AGENT_PROVIDER=deterministic` (no provider calls at all), with live
-  mode only on the owner's machine.
-
-## Agent tools (MCP server `blastgate`, stdio)
-
-`python -m blastgate.mcp_server` is started as a subprocess for each investigation by `agent.McpToolClient`
-(official `mcp` 2.3.0 SDK: `MCPServer` on the server side, `Client(StdioServerParameters)` on the client side). Tools are
-discovered with `list_tools`, and their schemas are what the LLM sees. Every tool returns
-`{status, summary, data, evidence[], unknowns[], next_actions[], error_code}`.
-
-| Tool | Input (validated) | Output |
-| --- | --- | --- |
-| `inspect_change` | `pr_id` (enum of known PRs) | producer, contract, field, old type (from the graph) vs declared new type, breaking flag |
-| `inspect_contract_coverage` | `pr_id` | mapping status and note, every consumer of the field with `fallback_enabled` and `evidence_source` |
-| `trace_blast_radius` | `pr_id`, `max_depth` 1–8 | affected services with depth and path, synthetic SLAs, labelled exposure estimate |
-| `analyze_network_criticality` | `services` (1–20 IDs, `^[a-z][a-z0-9-]*$`) | `algo.betweenness` scores (sampled approximation, informational) |
-| `retrieve_incidents_and_reviewers` | `pr_id`, `services` | incidents caused by changes to *this* contract; engineers connected by graph edges |
-| `simulate_mitigation` | `pr_id`, `consumer`, `assumption` (10–300 chars) | before/after on a `GRAPH.COPY`; source integrity checked; fails closed |
-
-There's no raw-Cypher tool, no tool takes a graph name, and IDs are re-validated at the tool boundary
-(`pydantic.validate_call`). The only write happens inside `simulate_mitigation`, which writes to a temporary
-copy that is deleted in `finally`; if containment can't be verified, the result is discarded with
-`error_code: integrity`.
-
-## How the Groq tool-calling loop works
-
-`agent.GroqPlanner` uses the official `groq` SDK (`AsyncGroq`, chat completions, `tool_choice="auto"`):
-
-1. It sends the system and user messages plus the MCP-discovered tool schemas, and a `submit_report` function
-   for the final structured answer.
-2. It parses `message.tool_calls`; each `function.arguments` value is a JSON string. If parsing fails, the call
-   becomes a rejected call, not a crash.
-3. The orchestrator checks each call:
-   - the tool must be on the **static allowlist** and discovered over MCP;
-   - its arguments must pass **JSON-schema validation**;
-   - `pr_id` must be the PR under investigation;
-   - it must not repeat an earlier call;
-   - at most **6 calls** run in total;
-   - `simulate_mitigation` runs only if the user asked for it, and always with the user's own `consumer` and
-     `assumption`.
-4. Allowed calls run **one at a time** over MCP. Each result goes back to Groq as
-   `{"role": "tool", "tool_call_id": <id>, "name", "content"}`, right after the assistant turn that made the
-   call. Rejected calls get an error result with the same ID.
-5. The loop stops when the model calls `submit_report` or replies in plain text, or when the budget runs out, a
-   timeout hits, or a safe error stops it.
-6. **The model's `reasoning` field is never stored or returned.** The trace records only the tool, arguments,
-   purpose, result summary, timing and errors.
-
-**Retries.**
-- **SDK:** one SDK retry (`max_retries=1`) covers transient errors and honours `retry-after` on 429. Any further 429 goes back to the caller with `Retry-After`.
-- **`tool_use_failed`:** this is the only error BlastGate retries itself. It means Groq rejected a generated tool call that broke the advertised schema; observed live, the model called `submit_report` without the required `summary`. BlastGate retries exactly once, at temperature 0. The `submit_report` schema stays strict.
-- **Never retried by BlastGate:** other 400s, 401, 429 and 5xx.
-- **No hidden fallbacks:** there are no unbounded sleeps or retry loops, no automatic switch to another provider, and no fallback to the demo planner.
-- **Exact tool names:** names must match exactly. A `functions.`-prefixed name (seen live) is rejected by the allowlist, not rewritten.
-
-## Evidence inventory and explanation gate
-
-Every investigation report carries a code-owned `inventory`. It covers vulnerable consumers, affected (critical)
-services, SLAs at risk, incidents on the contract, and reviewers, each with a status:
-
-| Status | Meaning | Supports "there are none"? |
-| --- | --- | --- |
-| `found` | the graph returned these items | no |
-| `none_found` | checked; nothing in the checked graph | **yes**, and only this status does |
-| `unknown` | the change target (contract/field) isn't verified in the graph | no |
-| `not_checked` | nobody looked it up in this investigation | no |
-| `check_failed` | the lookup errored | no |
-
-`summary` is rendered from the deterministic verdict and this inventory. Example: `incidents on this contract:
-INC-1877` or `…: not checked`.
-
-The model's text is checked against the inventory. It is withheld, and `explanation_status` becomes
-`withheld_inconsistent` with a warning naming the conflict, if it:
-- claims there are no incidents, vulnerable consumers, SLAs or downstream impact when the status isn't
-  `none_found`; or
-- names entities no tool returned.
-
-This came from a real live run: `gpt-oss-20b` wrote "no incidents have been associated with this contract" right
-after its own tool call returned INC-1877. The incident was in the tool trace and in `verified_facts`; only the
-prose was wrong, and that prose had been passed through as `summary`.
-
-The absence-claim check is a conservative phrase match. It may withhold correct text that happens to look like a
-denial; it doesn't try to understand free text.
-
-## Verdict semantics
-
-1. Producer/contract not found → **WARN**. Field not found → **WARN**.
-2. Breaking change, a consumer has `fallback_enabled=false`, and a critical service or SLA is affected → **BLOCK**.
-   Without a critical service or SLA → **WARN**. A known impact blocks even when coverage is incomplete.
-3. Mapping not `complete`, or any consumer with a non-boolean fallback or empty `evidence_source` → **WARN**.
-4. Otherwise → **CLEAR**.
-
-**Why CLEAR depends on verified coverage.** An empty consumer list means "nobody we know of", not "nobody". CLEAR
-requires `consumer_mapping_status=complete`, plus evidenced fallbacks for every indexed consumer. PR-108 has no
-indexed consumer but incomplete mapping, so it is WARN, never CLEAR.
-
-**Why a simulation isn't proof.** Every simulation result carries the label *"Counterfactual graph simulation only. The proposed code mitigation remains unverified until contract or integration tests pass."*
-`simulate_mitigation` flips one graph property on a copy and re-runs the rules.
-That shows what the topology would imply *if* the fix existed. It says nothing about whether real code parses the
-new type. Every simulated result carries a structured `counterfactual` block (`mitigation_status:
-"assumed_unverified"`, `verified_by_contract_or_integration_tests: false`, `production_verdict`), and its reasons
-are prefixed `[COUNTERFACTUAL - assumed mitigation, unverified]`. The investigation verdict for PR-104 stays
-**BLOCK**.
-
-## Graph model
+### Service graph schema
 
 ```text
 (:Service {name, tier: critical|standard, team, synthetic})
@@ -376,10 +185,9 @@ are prefixed `[COUNTERFACTUAL - assumed mitigation, unverified]`. The investigat
 (:Incident {incident_id, severity, summary, synthetic: true, label})
 (:Engineer {handle, display_name, synthetic: true})
 
-(Service)-[:EXPOSES]->(Contract)
-(Contract)-[:HAS_FIELD]->(SchemaField)
+(Service)-[:EXPOSES]->(Contract)-[:HAS_FIELD]->(SchemaField)
 (Service)-[:CONSUMES_FIELD {fallback_enabled, evidence_source}]->(SchemaField)
-(Service)-[:DEPENDS_ON]->(Service)            # (B)-[:DEPENDS_ON]->(A) means B depends on A
+(Service)-[:DEPENDS_ON]->(Service)            # (B)-[:DEPENDS_ON]->(A): B depends on A
 (Service)-[:BACKS_SLA]->(SLAContract)
 (Incident)-[:CAUSED_BY_CHANGE_IN]->(Contract)
 (Engineer)-[:AUTHORED_COMMITS]->(Service)
@@ -392,243 +200,262 @@ pricing-engine → checkout-api → order-orchestrator → invoice-worker
 catalog-service → search-indexer, storefront-bff
 ```
 
-All data lives as constants in `blastgate/graph.py` and is loaded with parameterised `UNWIND` queries. `seed()`
-checks every node and relationship count against the source data and deletes the graph if they differ.
-`UNWIND … MATCH … CREATE` silently skips rows whose match fails, so without this check a dropped consumer edge
-could quietly turn BLOCK into CLEAR.
+`seed()` loads the constants in `blastgate/graph.py` with parameterised `UNWIND` queries and checks every node and
+relationship count against the source data. If a count is off, it deletes the graph. This matters because
+`UNWIND … MATCH … CREATE` silently skips unmatched rows, and one dropped consumer edge would quietly turn BLOCK into
+CLEAR.
 
-**Impact depth.** A direct consumer is at depth 1, and each `DEPENDS_ON` hop adds 1; the shortest route wins.
-SLA links never count as hops. The consumer, incident, reviewer and simulation queries are anchored at
-`(:Service {name:$producer})-[:EXPOSES]->`, so a contract with the same ID under another producer can't leak
-in.
+### Representative Cypher (from [`blastgate/queries.py`](blastgate/queries.py))
 
-## Scenarios (synthetic)
+```cypher
+// Consumers of the changed field, anchored at the producer so same-named contracts can't leak in
+MATCH (:Service {name: $producer})-[:EXPOSES]->(:Contract {contract_id: $contract})
+      -[:HAS_FIELD]->(f:SchemaField {name: $field})<-[r:CONSUMES_FIELD]-(s:Service)
+...
 
-| PR | Change | Graph evidence | Verdict |
-| --- | --- | --- | --- |
-| PR-104 | `pricing-api-v2.discount_tier` string → object | `checkout-api` consumes it with `fallback_enabled=false`; depth 2–3 reaches 4 more services; 3 synthetic SLAs; INC-2041; reviewer `eng-alpha` | **BLOCK** |
-| PR-108 | `partner-webhook-v1.payload_signature` hex → base64 | no internal consumer indexed, `consumer_mapping_status=incomplete` | **WARN** |
-| PR-112 | optional `catalog-api-v1.promo_badge` format | coverage complete; only consumer `search-indexer` has an evidenced fallback | **CLEAR** (modelled assumptions) |
-| PR-114 | required `catalog-api-v1.sku` format | `storefront-bff` (`standard` tier) consumes it with `fallback_enabled=false`; no critical service or SLA affected; INC-1877; reviewer `eng-charlie` | **WARN** |
-| PR-104 sim | *assume* `checkout-api` gains a fallback | on a `GRAPH.COPY`; no vulnerable consumer remains | **CLEAR** (simulation only) |
+// Multi-hop blast radius from the consumers
+MATCH p = (d:Service)-[:DEPENDS_ON*1..8]->(v:Service)
+WHERE v.name IN $consumers
+RETURN d.name, d.tier, length(p), [n IN nodes(p) | n.name]
 
-## Tests
-
-None of these need a Groq key. FalkorDB-backed tests are **skipped with a reason** if the database is unreachable.
-Skipped isn't passed.
-
-```bash
-pytest -rs                                  # everything (live tests auto-skip without FalkorDB / key)
-pytest tests/unit tests/agent/test_groq_planner.py tests/agent/test_orchestrator_unit.py tests/api -m "not integration"  # no DB
-pytest tests/mcp -rs                        # real MCP stdio subprocess + live FalkorDB
-pytest tests/evaluation -s -rs              # 12-task agent eval; prints the metrics table
+// Network criticality (sampled, pinned seed for reproducibility; informational only)
+CALL algo.betweenness({nodeLabels: ['Service'], relationshipTypes: ['DEPENDS_ON'],
+                       samplingSize: $size, samplingSeed: $seed})
+YIELD node, score
 ```
 
-| Suite | What it proves | Needs |
+On the code graph (Gristle's schema), [`blastgate/codegraph.py`](blastgate/codegraph.py) runs `CG_SYMBOLS_IN_FILE`
+(diff hunks → `Function`/`Class`), `CG_TYPE_FIELDS` (base vs head `TypeField`s), `CG_TYPE_USERS`
+(`ACCEPTS|RETURNS`), `CG_CALLERS` (`CALLS*1..4`, confidence = weakest `resolution`), `CG_ROUTES`
+(`Route-[:HANDLES]`) and `CG_TESTS` (`TESTS_FUNCTION`). All of these are parameterised `ro_query` calls.
+
+> **Type-level ≠ field-level.** `ACCEPTS`/`RETURNS` links show that a function handles `PriceQuote`, not that it
+> reads `discount_tier`. The report labels these links as type-level. Unmapped code (`reporting/`) stays **unknown**.
+> Code evidence can only *add* caution (CLEAR → WARN), never remove it.
+
+### MCP tools (`python -m blastgate.mcp_server`, stdio, official `mcp` 2.3.0 SDK)
+
+Every tool returns `{status, summary, data, evidence[], unknowns[], next_actions[], error_code}`.
+
+| Tool | Input (validated) | Output |
 | --- | --- | --- |
-| `tests/unit`, `tests/integration` | Milestone 1 engine, simulation, isolation | integration: FalkorDB |
-| `tests/agent/test_groq_planner.py` | Groq request shape, tool-call parsing, `tool_call_id` association, malformed output, 401/403/404/429/400/5xx/timeout/network | nothing (**scripted mock** Groq responses) |
-| `tests/agent/test_orchestrator_unit.py` | allowlist, schema validation, PR pinning, duplicates, 6-call cap, unrequested simulation, verdict integrity, grounding, unsupported references | nothing (fake tool client) |
-| `tests/agent/test_agent_live.py` | full agent over **real MCP** + live graph; scripted Groq loop choosing tools from real results; provider errors map to 429/502/504 | FalkorDB |
-| `tests/mcp` | server start/stop, discovery, schemas, real results, safe errors, DB-down, primary-graph isolation, server-unavailable → 503 | FalkorDB |
-| `tests/api` | settings parsing, missing-key 503, validation, 404/422/503, OpenAPI, analyze/simulate/investigate | partly FalkorDB |
-| `tests/evaluation` | 12 synthetic tasks (below) with machine-checked expectations | FalkorDB |
-| `tests/providers/test_groq_live.py` | **opt-in** live smoke test: one small real Groq request | `GROQ_API_KEY` |
-| `tests/unit/test_codegraph_unit.py` | diff parsing, changed symbols, field delta, strict mapping, graph structure changes the result, audit regressions, PR-900 registration | nothing (fake graphs, local git) |
-| `tests/integration/test_codegraph_live.py` | 9 scenarios on real Gristle indexing + FalkorDB | `BLASTGATE_GRISTLE_BIN`, FalkorDB |
-| `tests/integration/test_codegraph_agent_loop.py` | saved review → PR-900 → real MCP agent → BLOCK → counterfactual; graph unchanged | FalkorDB |
-| `tests/unit/test_memory_unit.py` | revalidation, grouping, link rules (no stub `CodeReview`) | nothing |
-| `tests/integration/test_memory_live.py` | memory across **separate processes**: recall + `FOLLOWS`, field scoping, a prior CLEAR never clears, reviewer → agent `BUILDS_ON`, broken store, off by default | FalkorDB |
-| `tests/api/test_codegraph_report.py` | read-only report endpoint: no caller input, malformed/oversized refused | nothing |
-| `web/tests/view.test.mjs` (`node --test web/tests/view.test.mjs`) | console rendering of real recorded responses, agent timeline, loop strip, escaping | Node |
+| `inspect_change` | `pr_id` (enum of known PRs) | producer, contract, field, old type from the graph vs declared new type, breaking flag |
+| `inspect_contract_coverage` | `pr_id` | mapping status; every consumer with `fallback_enabled` and `evidence_source` |
+| `trace_blast_radius` | `pr_id`, `max_depth` 1–8 | affected services with depth and path, synthetic SLAs, labelled exposure estimate |
+| `analyze_network_criticality` | `services` (1–20 ids, `^[a-z][a-z0-9-]*$`) | `algo.betweenness` scores (sampled, informational) |
+| `retrieve_incidents_and_reviewers` | `pr_id`, `services` | incidents caused by changes to *this* contract; engineers linked by graph edges |
+| `simulate_mitigation` | `pr_id`, `consumer`, `assumption` (10–300 chars) | before/after on a `GRAPH.COPY`; source integrity checked; fails closed |
 
-**Eval tasks.** The 12 tasks cover:
-- a breaking change that hits a critical service
-- incomplete coverage
-- a safe change
-- an unknown field
-- a producer/contract mismatch
-- duplicate edges
-- missing SLA data
-- incident history that isn't relevant
-- a requested simulation
-- an attempted simulation the user didn't request
-- a database failure
-- a provider failure
+**Safety boundaries:**
+- There's no raw-Cypher tool, and no tool accepts a graph name.
+- Ids are re-validated at the tool boundary.
+- The orchestrator enforces a static allowlist, JSON-schema validation, pinning to the PR under investigation, no
+  duplicate calls and a hard cap of 6 calls.
+- `simulate_mitigation` runs only when the user asks for it, and only with the user's own arguments.
+- The only write goes to a temporary copy, which is deleted in `finally`.
 
-Each task checks the verdict, the affected services, evidence that must and must not appear, grounding, allowed
-and forbidden tools, and the 6-call cap. It also reports latency and call counts. By default the tasks run with
-the **deterministic demo planner**, which measures the tools, guards and grounding rather than LLM quality. For a
-real-LLM eval, set `BLASTGATE_EVAL_LIVE=1`, `AGENT_PROVIDER=groq` and `GROQ_API_KEY`; mind the free-tier limits.
+### Planner vs policy
 
-**Live Groq smoke test** (makes one small request):
+| | Deterministic planner (default, demoed) | Groq planner (optional) |
+| --- | --- | --- |
+| Chooses tools by | following each tool result's `next_actions` | the LLM (`tool_choice="auto"`) over MCP-discovered schemas |
+| LLM involved | **No** | Yes (`AGENT_PROVIDER=groq`, `GROQ_API_KEY`) |
+| Shown in UI as | *Demo planner, rule-based, no LLM* | *Agent: live model …* |
+| Verified in this repo | ✅ every recorded run | Covered by tests with **scripted** Groq responses; a live run was **not** part of this verification |
 
-```bash
-set -a; source .env; set +a
-pytest tests/providers -m live_provider -rs
-```
+In both modes the verdict comes from `analysis.analyze()` → `verdict.decide()`. If the model's recommended verdict
+disagrees, the response shows that as a warning; the model's verdict is never used.
 
-## Groq free tier and troubleshooting
+### Verdict rules ([`blastgate/verdict.py`](blastgate/verdict.py))
 
-According to Groq's rate-limit docs, `openai/gpt-oss-20b` on the free tier is listed at **30 requests/min,
-1K requests/day, 8K tokens/min and 200K tokens/day**; check your organisation's values in the console.
-An investigation makes about 3–7 model requests, so a few investigations a minute can hit the token-per-minute
-limit. Availability and limits are set by Groq and can change.
+1. Producer, contract or field not found → **WARN**.
+2. Breaking change, plus a consumer with `fallback_enabled=false`, plus an affected critical service or SLA →
+   **BLOCK**. The same without a critical service or SLA → **WARN**.
+3. Mapping not `complete`, or a consumer with unevidenced fallback data → **WARN**.
+4. Otherwise → **CLEAR**. An empty consumer list means "nobody we know of", so CLEAR requires complete coverage.
 
-| Symptom | Meaning / fix |
-| --- | --- |
-| `503 agent_provider_not_configured` | set `AGENT_PROVIDER=groq` and `GROQ_API_KEY` in `.env`, then reload it into the shell |
-| `502 provider_auth` | key invalid or revoked (401/403): create a new key in the Groq console |
-| `502 provider_model_unavailable` | `AGENT_MODEL` isn't available to your account (404): pick a tool-use model from the docs |
-| `429 provider_rate_limited` | free-tier limit hit: wait for `Retry-After` seconds |
-| `502 provider_bad_request (tool_use_failed)` | the model produced a schema-invalid tool call twice in a row (BlastGate already retried once); retry the request, or try a larger model |
-| `504 provider_timeout` / `502 provider_network` | raise `AGENT_TIMEOUT_S` or check connectivity |
-| `503 graph_unavailable` | start FalkorDB: `docker start blastgate-falkordb` |
+### Evidence inventory and explanation gate
 
-## Verified FalkorDB / SDK facts (checked against docs and the live server)
+Each evidence category (vulnerable consumers, affected and critical services, SLAs, incidents, reviewers) gets a
+status: `found`, `none_found`, `unknown`, `not_checked` or `check_failed`. Only `none_found` supports a claim
+that something is absent. `summary` and `verified_facts` are built by code from tool payloads.
 
-- `graph.query/ro_query(q, params)` send params as a `CYPHER k=v` header; `ro_query` rejects writes.
-- `graph.copy(clone)` is `GRAPH.COPY`; it errors if the target exists, and the copy is independent (verified).
-  `graph.delete()` on a missing graph raises, so the code checks `list_graphs()` first.
-- `FalkorDB()` connects **eagerly** (`INFO` for Sentinel detection), so BlastGate connects lazily inside guarded
-  calls and a down database becomes a clean 503 instead of a crash.
-- `algo.betweenness` defaults to a time-based sampling seed. We observed the same node scoring 0.0 and 6.0 across
-  runs, so BlastGate pins `samplingSize=32, samplingSeed=1`.
-- `mcp` 2.x renamed FastMCP to `MCPServer`. Unexpected extra tool arguments are silently ignored by the SDK, so
-  the orchestrator rejects them itself. Raising inside an MCP client session surfaces as an anyio
-  `ExceptionGroup`, so provider errors are raised only after the session closes.
+Model text is withheld (`explanation_status: withheld_inconsistent`) if it:
+- denies something whose status isn't `none_found`; or
+- names an incident, SLA, engineer or service that no tool returned.
 
-## Code-graph review (Gristle + git diff → verdict → review report)
+This gate exists because of a real live run: the model said "no incidents" right after its own tool call
+returned one.
 
-`python -m blastgate.codegraph REPO --base REF [--simulate-fallback SERVICE] [--out PATH]` reviews the working
-tree of a local git repo against `REF`, with no LLM. It exits 0 CLEAR, 1 WARN, 2 BLOCK, or 3 error with no verdict.
+### Counterfactual isolation
 
-1. [Gristle](https://github.com/Alchemy-Agentic/gristle) (MIT) indexes the base commit and the working tree into
-   two temporary FalkorDB code graphs, using its real tree-sitter parser. It runs as its own executable
-   (`BLASTGATE_GRISTLE_BIN`) because it pins `mcp<2`.
-2. Changed symbols are the code-graph `Function`/`Class` nodes whose line ranges overlap the `git diff -U0` hunks.
-   Contract-field changes come from comparing the class's `TypeField`s across the two graphs (removed and
-   type-changed fields are breaking; added fields are not).
-3. Code impact uses BlastGate's own read-only Cypher over Gristle's schema: `ACCEPTS`/`RETURNS` (type-level),
-   transitive `CALLS` (confidence = weakest `resolution`), `Route-[:HANDLES]`, and `TESTS_FUNCTION`.
-4. Source → service only via `blastgate.map.json` **read from the base commit**. Each mapping is validated:
-   the service must exist, and the producer must `EXPOSE` the contract and field. Unmapped, ambiguous or
-   invalid mappings stay unknown. Names and field strings are never matched.
-5. The verdict is the existing `analyze()`/`decide()` on the service graph. Code evidence can only add caution
-   (CLEAR → WARN). The report lists code evidence, service evidence, the cross-check (corroborated, code-only,
-   service-graph-only), recommended tests, reviewers, uncertainties, known gaps and the full query trace.
+`simulate_mitigation`:
+1. copies the service graph with `GRAPH.COPY`;
+2. sets `fallback_enabled=true` on one `CONSUMES_FIELD` edge in the copy;
+3. re-runs the same rules on the copy;
+4. checks that the source graph is unchanged, and deletes the copy.
 
-`REPO` must be a git repository root. The base snapshot is written from exact blobs (`git ls-tree`/`cat-file`),
-so `.gitattributes` `export-ignore`/`export-subst` can't drop or rewrite files. Diff output options are pinned
-so `diff.noprefix` and similar user config can't change the parsed paths. Gristle's dependency checker (which
-would send package names to pypi.org / npm / osv.dev) is disabled. Repository code goes to no model provider
-and no network service.
+If containment can't be verified, the result is discarded (`error_code: integrity`). Every result carries
+`mitigation_status: "assumed_unverified"` and `code_level_correctness: UNVERIFIED`. The PR-900 verdict stays
+**BLOCK**.
 
-### Reproducible setup (separate venv; never install Gristle into `.venv`)
+### Investigation memory (opt-in, `BLASTGATE_MEMORY_GRAPH`)
 
-```bash
-scripts/setup_gristle.sh       # Python >= 3.11 (default python3.12) -> .gristle-venv/, Gristle v0.12.0 pinned
-                               # by commit d72083d, deps pinned by scripts/gristle-constraints.txt.
-                               # An existing venv is never removed or recreated.
-export BLASTGATE_GRISTLE_BIN="$PWD/.gristle-venv/bin/gristle"   # the `gristle` console script itself
-```
-
-### Demo (synthetic, needs FalkorDB; no LLM)
-
-```bash
-.venv/bin/python scripts/codegraph_demo.py      # exit 2 = BLOCK; writes codegraph_demo_out/report.{md,json}
-.venv/bin/uvicorn blastgate.api:app --port 8000 # console -> "Code-graph review" -> "Git diff"
-```
-
-The demo commits `examples/shop_monorepo` into a temporary git repo and changes
-`PriceQuote.discount_tier: str → dict`. It reviews the change against a temporary demo service graph (never
-`BLASTGATE_GRAPH`) with a checkout-api counterfactual, then drops that graph. The console reads the report through
-`GET /api/codegraph/report`, which serves only the file at `BLASTGATE_CODEGRAPH_REPORT` (default
-`codegraph_demo_out/report.json`). It takes no caller input and never runs git, Gristle or any subprocess.
-
-Live tests: `BLASTGATE_GRISTLE_BIN=... .venv/bin/python -m pytest tests/integration/test_codegraph_live.py`.
-They skip with a reason when the binary or FalkorDB is unavailable. Skipped is not passed.
-
-### Hand-off to the MCP agent (PR-900)
-
-When the operator sets `BLASTGATE_CODEGRAPH_REPORT`, each **validated** contract change in that saved review
-becomes an investigable change: `PR-900`, `PR-901`, and so on. Registration happens in `blastgate/tools.py` at
-import, in both the API and the MCP server process; `McpToolClient` forwards that one variable. From there the
-existing `/api/analyze`, `/api/agent/investigate` and `/api/simulate` run unchanged on the change the code graph
-detected, with the same six tools and the same gate.
-
-- Unmapped, ambiguous or invalid changes are never registered.
-- Existing PR ids are never overridden.
-- A malformed file registers nothing; a warning is logged and the server still starts.
-- The model can't add or alter a scenario.
-
-With the variable unset, nothing changes.
-
-### Cypher over the code graph (Gristle schema, all `ro_query`, parameterised)
-
-| Query | Purpose |
-| --- | --- |
-| `CG_SYMBOLS_IN_FILE` | `Function`/`Class` line ranges in a changed file, matched against diff hunks (base and head) |
-| `CG_TYPE_FIELDS` | `(:Class)-[:HAS_FIELD]->(:TypeField)`, compared base vs head to detect removed or type-changed fields |
-| `CG_TYPE_USERS` | `(:Function)-[:ACCEPTS\|RETURNS]->(:Class)`: code that handles the contract type |
-| `CG_CALLERS` | `(:Function)-[:CALLS*1..4]->(:Function)`, keeping each edge's `resolution` for confidence |
-| `CG_ROUTES` | `(:Route)-[:HANDLES]->(:Function)` |
-| `CG_TESTS` | `()-[:TESTS_FUNCTION]->(:Function)`: tests to recommend |
-
-## Investigation memory (opt-in, `BLASTGATE_MEMORY_GRAPH`)
-
-Memory lives in a **separate** FalkorDB graph, so the service graph is never written. Two processes share it:
-`blastgate.codegraph` (the code-graph reviewer) and the investigation agent behind `/api/agent/investigate`.
+Memory lives in a **separate** FalkorDB graph, so the service graph is never written. The code-graph reviewer and
+the investigation agent run as separate processes, and both write to it and read from it:
 
 ```text
-(:Investigation)-[:EXAMINED]->(:Change)-[:MODIFIES]->(:ContractField {key: "pricing-api-v2.discount_tier"})
-(:Investigation)-[:FOUND_AFFECTED {depth, tier}]->(:Service)     (:Investigation)-[:FOUND_AT_RISK]->(:SLA)
-(:Investigation)-[:CITED]->(:Incident)     (:Investigation)-[:RECOMMENDED_REVIEWER {resolved_incidents, authored_services}]->(:Engineer)
-(:Investigation)-[:FOLLOWS]->(:Investigation)       (:Investigation)-[:BUILDS_ON]->(:CodeReview)
-(:CodeReview)-[:DETECTED_CHANGE_TO]->(:ContractField)   (:CodeReview)-[:CODE_DEPENDENT_IN]->(:Service)   (consumer side only)
+(:Investigation)-[:EXAMINED]->(:Change)-[:MODIFIES]->(:ContractField)
+(:Investigation)-[:FOUND_AFFECTED]->(:Service)   (:Investigation)-[:FOUND_AT_RISK]->(:SLA)
+(:Investigation)-[:CITED]->(:Incident)           (:Investigation)-[:RECOMMENDED_REVIEWER]->(:Engineer)
+(:Investigation)-[:FOLLOWS]->(:Investigation)    (:Investigation)-[:BUILDS_ON]->(:CodeReview)
 ```
 
-- **Keys are exact ids** returned by the tools or the engine. Recall covers the same `contract_id.field` only,
-  with at most 5 investigations and 5 reviews.
-- **History is context, not evidence.** Each remembered fact is shown with what the current graph says now
-  (`revalidation`). The verdict is computed without memory, so a prior CLEAR never clears a new change and a prior
-  BLOCK never blocks an unrelated one.
-- **Who reads history.** The live model gets it as context, and the existing explanation gate withholds its
-  text if that text cites anything the tools didn't return. The rule-based demo planner doesn't read history;
-  code revalidates it.
-- **Writes are safe to retry.** Each record is one atomic Cypher query using `MERGE`, so a retry with the same id
-  creates nothing new. A `BUILDS_ON` link is written only to a code review that recall actually returned, never to
-  a stub.
-- **Failures never change the result.** A recall or write failure is reported as `recall_failed` /
-  `record_failed`, and the investigation result is unchanged. With the variable unset, `memory` is `null` and
-  nothing is written.
-- **Not modelled:** service **owners**. `Service.team` is a property, not a relationship, so BlastGate names
-  reviewers through `RESOLVED_INCIDENT` and `AUTHORED_COMMITS` and never infers owners. There is no repository
-  node either; changes are keyed by PR id and, for code-graph changes, the git base sha.
+- **Recall:** by exact contract-field key, up to 5 earlier investigations and 5 code reviews.
+- **History is context, not evidence:** each remembered fact is re-checked against the current graph, and the
+  verdict is computed without memory.
+- **Safe writes:** each record is one atomic `MERGE`, so a retry creates nothing new.
+- **Failures don't change results:** a memory failure is reported as `recall_failed` / `record_failed`, and the
+  investigation result stands.
 
-## Limitations
+### Error handling
 
-- Synthetic, hand-modelled service data. There's no ingestion from real manifests, traces or incident tools.
-  `breaking` is declared per scenario for the PR scenarios; only the code-graph review derives it from a diff.
-- The code-graph review is Python/TypeScript-only (Gristle's parsers). It can't see attribute reads or
-  cross-repo HTTP consumers, and it reviews tracked changes only (untracked files are indexed but not diffed).
-- Betweenness is a sampled approximation: reproducible, but not exact. It's informational only.
-- Exposure is penalty/hour × an assumed outage duration, not a prediction or a measured loss.
-- The MCP server starts once per investigation (about 0.3 s). Downstream traversal is capped at 8 hops.
-- Live Groq behaviour depends on the model: a 20B model may choose tools less well. The verdict is unaffected.
-- **Not production-ready.** Live agent investigations support optional bearer-token gating (`AGENT_LIVE_TOKEN`) and in-process rate limits (`LiveLimiter`), but demo routes are unauthenticated and TLS/shared multi-worker stores are not included.
+Errors use the shape `{"error", "message"}`:
 
-## AI assistance disclosure
+| Status | Code | When |
+| --- | --- | --- |
+| 404 | `unknown_scenario` | unknown PR id |
+| 422 | — | malformed request body |
+| 503 | `graph_unavailable` | FalkorDB unreachable |
+| 503 | `agent_provider_not_configured` | no agent provider set |
+| 503 | `tool_server_unavailable` | MCP server can't start |
+| 429 | `provider_rate_limited` | provider limit hit (sent with `Retry-After`) |
+| 502 / 504 | `provider_*` | provider auth, model, request, network or timeout failure |
+
+A failed agent run is never returned as a completed investigation. A demo result is never substituted.
+
+### HTTP API
+
+| Route | Purpose |
+| --- | --- |
+| `GET /health` | always 200; reports `falkordb: up/down`, provider status, code-graph report availability; never returns secrets |
+| `GET /ready` | 200 only when FalkorDB is reachable, else 503 |
+| `GET /api/scenarios` | synthetic PRs (plus PR-900 when a code-graph report is configured) |
+| `POST /api/analyze` | deterministic analysis and verdict (no LLM) |
+| `POST /api/simulate` | counterfactual on a temporary graph copy |
+| `POST /api/agent/investigate` | agent over MCP: inventory, verified facts, gated explanation, tool trace, memory |
+| `GET /api/codegraph/report` | serves the one pre-generated review file; takes no caller input, runs no subprocess |
+
+## Track 01 requirement mapping
+
+| Requirement | Source | What a judge sees |
+| --- | --- | --- |
+| **Multi-hop reasoning** | `queries.py` (`CONSUMES_FIELD` → `DEPENDS_ON*1..8` → `BACKS_SLA`, `CAUSED_BY_CHANGE_IN` → `RESOLVED_INCIDENT`); `codegraph.py` (`ACCEPTS/RETURNS` → `CALLS*1..4` → `HANDLES` / `TESTS_FUNCTION`) | Impact map `pricing-engine → checkout-api → order-orchestrator → invoice-worker`; depth per service |
+| **Graph queries/algorithms as tools** | `tools.py`, `mcp_server.py`, `algo.betweenness`, `GRAPH.COPY` | Agent timeline: each call's graph evidence ids |
+| **MCP tool selection** | `agent.py` `DeterministicPlanner` (follows `next_actions`) and `GroqPlanner` (LLM-chosen) | Timeline shows tool, arguments and *why it ran*; planner badge. **Demo runs use the deterministic planner; live LLM selection is test-covered with scripted responses, not demonstrated live.** |
+| **Actions based on graph data** | `verdict.py`, recommended tests (`TESTS_FUNCTION`), reviewers (graph edges), review report, counterfactual | BLOCK decision, reasons, tests, reviewers, `codegraph_demo_out/report.md` |
+| **Explainable results** | `agent.py` inventory + explanation gate; `verified_facts` from tool payloads | Evidence panel with five statuses; unresolved items; counterfactual labelled *assumed, unverified* |
+
+## Trust, security and limitations
+
+- **Synthetic data.** Every service, engineer, incident, SLA and penalty rate is made up.
+- **The `$43,000` is an assumption, not a loss.** It equals the synthetic penalty rates of the affected SLAs
+  (`$21,500/h`) × the scenario's **assumed** 2-hour outage. The API labels it *"ASSUMED exposure … Not a measured
+  or predicted loss."*
+- **Type-level links don't prove field reads.** Unmapped or ambiguous contracts stay `unknown` and are never
+  guessed.
+- **The policy decides.** The deterministic engine owns the verdict, and no planner or model can override it.
+- **The offline planner isn't an LLM.** Its tool order follows the returned `next_actions`.
+- **A counterfactual is hypothetical.** CLEAR on the copy says what the topology would imply *if* the fix existed;
+  it doesn't show that real code handles the new type.
+- **No GitHub merge blocking is wired up.** `python -m blastgate.codegraph` exits `2` on BLOCK, so a CI job *could*
+  gate on it, but this repo ships no GitHub Action or status check. Merge blocking is a recommendation.
+- **Deployment.** The Vercel deployment has no FalkorDB, no agent provider and no code-graph report. Gristle and
+  the MCP stdio subprocess aren't exercised there. The graph-backed demo is local-only, and the hosted console
+  says so.
+- **Live provider safety.** `/api/agent/investigate` in Groq mode accepts only loopback callers unless
+  `AGENT_LIVE_TOKEN` is set, and it applies in-process rate limits. `GROQ_API_KEY` never leaves the server, and
+  there's no CORS middleware.
+- **Not production-ready.**
+  - The demo routes are unauthenticated.
+  - The rate-limit counters are per-process.
+  - Betweenness is a sampled approximation.
+  - The code graph covers Python and TypeScript only.
+
+## Development and tests
+
+Results as rerun on 2026-10-18 (macOS, Python 3.12 venv, FalkorDB in Docker, Node 26):
+
+```bash
+.venv/bin/python -m pytest -q -rs
+# 218 passed, 11 skipped
+#   10 skipped: tests/integration/test_codegraph_live.py (BLASTGATE_GRISTLE_BIN not set)
+#    1 skipped: tests/providers/test_groq_live.py      (GROQ_API_KEY not set; live Groq not tested)
+
+BLASTGATE_GRISTLE_BIN="$PWD/.gristle-venv/bin/gristle" .venv/bin/python -m pytest -q tests/integration/test_codegraph_live.py
+# 10 passed (real Gristle indexing + FalkorDB)
+
+node --test web/tests/view.test.mjs
+# 25 passed (console rendering of recorded real backend responses)
+```
+
+FalkorDB-backed tests skip with a stated reason when the database is unreachable. A skipped test is not a passed
+test.
+
+| Suite | Proves | Needs |
+| --- | --- | --- |
+| `tests/unit` | verdict rules, simulation, diff parsing, mapping, memory rules | nothing |
+| `tests/agent` | Groq request shape and errors (scripted), orchestrator guards, full agent over real MCP | FalkorDB for live parts |
+| `tests/mcp` | real stdio server: discovery, schemas, results, DB-down, graph isolation | FalkorDB |
+| `tests/api` | routes, validation, errors, CSP and static serving, code-graph report endpoint | partly FalkorDB |
+| `tests/integration` | seed integrity, code-graph live scenarios, PR-900 agent loop, memory across processes | FalkorDB (+ Gristle) |
+| `tests/evaluation` | 12 synthetic agent tasks with machine-checked expectations | FalkorDB |
+| `tests/providers` | opt-in live Groq smoke test | `GROQ_API_KEY` |
+
+**Optional live LLM.** Put `AGENT_PROVIDER=groq` and `GROQ_API_KEY=…` in a local, git-ignored `.env`
+(see `.env.example`). Load it with `set -a; source .env; set +a`, then run `uvicorn blastgate.api:app --port 8000`.
+
+**Deploying the site.** Run `npx vercel deploy --prod`. `app.py` exposes `blastgate.api:app`, `vercel.json` selects
+FastAPI, and `.vercelignore` keeps `.env`, the venvs and the generated output out of the upload. To make the hosted
+console fully interactive, you would need to:
+1. point `FALKORDB_HOST` / `FALKORDB_PORT` / `FALKORDB_PASSWORD` at a reachable FalkorDB instance, set as Vercel
+   environment variables (never in tracked files);
+2. seed that instance with the service graph;
+3. supply a code-graph report.
+
+None of this is configured on the current deployment.
+
+| Symptom | Fix |
+| --- | --- |
+| `503 graph_unavailable` | `docker start blastgate-falkordb` |
+| `Port … is already in use` from `start_demo.sh` | `PORT=8770 scripts/start_demo.sh` |
+| `No code-graph review yet` | run step 3 of the quickstart (`scripts/codegraph_demo.py`) |
+| `Service graph 'blastgate_m1' not found` | `.venv/bin/python blastgate_milestone1.py` |
+| `503 agent_provider_not_configured` | expected without `AGENT_PROVIDER`; `start_demo.sh` sets `deterministic` |
+| Console says *"older server"* | restart it with `scripts/start_demo.sh` |
+
+## AI-assisted development disclosure
 
 This project was built with AI coding assistance, disclosed per the GraphHacks rules:
 
-- **Claude Code** (Anthropic) wrote and ran the code and tests under human direction.
-- **Everything Claude Code (ECC)** workflows:
-  - `search-first` to check the FalkorDB client, Cypher, `GRAPH.COPY`, `algo.betweenness`, the `mcp` 2.x SDK and
-    the `groq` SDK against official docs and installed sources before coding;
-  - `change-impact` for an independent correctness audit with adversarial probes. It found and fixed a
-    silent-CLEAR seeding bug and a cross-producer contract leak.
-- **Ponytail** for minimal-code discipline: no unrequested abstractions or dependencies.
-- **Runtime:** GroqCloud provides live LLM inference for the agent.
+- **Claude Code** (Anthropic) wrote and ran the code, tests, deployment and this README, under human direction.
+- **Everything Claude Code (ECC)** workflows were used for:
+  - doc-checked research (`search-first`) on FalkorDB, `GRAPH.COPY`, `algo.betweenness`, the `mcp` 2.x SDK and
+    the `groq` SDK;
+  - an adversarial correctness audit (`change-impact`), which found and fixed a silent-CLEAR seeding bug and a
+    cross-producer contract leak.
+- **Ponytail** was used for minimal-code discipline.
+- **Runtime:** GroqCloud is the optional live LLM provider. The demo uses the deterministic planner.
 
-The team must review and be able to explain the graph model, queries, agent loop and decisions.
+The team reviewed the code and can explain the graph model, the queries, the agent loop and the decisions.
+
+---
+
+<div align="center">
+
+**BlastGate doesn't just display connected data. It uses graph relationships to investigate a change, guide its
+next steps and explain its engineering decision.**
+
+[Website](https://blastgate.vercel.app) · [Repository](https://github.com/ThatKJ/blastgate-graphhacks-2026) · [Run it locally](#judge-quickstart-local-about-5-minutes)
+
+</div>
